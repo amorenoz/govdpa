@@ -15,14 +15,14 @@ export GOBIN
 .PHONY: all
 all: vdpacli
 
-vendors:
+vendor:
 	@glide up
 
 $(BASE):
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
 
-vdpacli: $(GOFILES) | $(BASE) vendors
+vdpacli: $(GOFILES) vendor | $(BASE) 
 	@cd $(BASE) && go build -o $(BINARY_NAME)
 
 .PHONY: clean
