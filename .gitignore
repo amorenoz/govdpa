@@ -17,3 +17,5 @@ vendor/
 # Glide lock
 glide.lock
 
+# Gopath
+.gopath/
