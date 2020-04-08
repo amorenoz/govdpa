@@ -10,8 +10,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	//"github.com/intel/sriov-network-device-plugin/pkg/resources/vdpa"
-	vdpa "github.com/amorenoz/sriov-network-device-plugin/pkg/resources/vdpa/client"
+	vdpa "github.com/amorenoz/user-vdpa-cli/pkg/uvdpa"
 	"os"
 	"strings"
 )
