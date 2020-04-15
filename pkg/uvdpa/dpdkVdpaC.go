@@ -22,22 +22,6 @@ var (
 	once     sync.Once
 )
 
-// Structs of responses as defined in API
-type listResponse struct {
-	count      int
-	interfaces []VhostIface
-}
-
-type createArgs struct {
-	Device string `json:"device-id"`
-	Socket string `json:"socket-path"`
-	Mode   string `json:"socket-mode"`
-}
-
-type statusResponse struct {
-	Status string `json:"status"`
-}
-
 // UserClientimplements UserDaemonStub and connects to the uvdpad:
 // https://gitlab.com/mcoquelin/userspace-vdpa/
 type userClient struct {
@@ -67,27 +51,21 @@ func (c *userClient) Version() (string, error) {
 }
 
 func (c *userClient) ListIfaces() ([]VhostIface, error) {
-	var res listResponse
+	var res []VhostIface
 	err := c.client.Call("list-interfaces", nil, &res)
-	return res.interfaces, err
+	return res, err
 }
 
 func (c *userClient) Create(v VhostIface) error {
-	var res statusResponse
-	arg := createArgs{
-		Device: v.Device,
-		Socket: v.Socket,
-		Mode:   v.Mode,
-	}
-
-	err := c.client.Call("create-interface", &arg, &res)
+	err := c.client.Call("create-interface", &v, nil)
 	return err
 }
 
 func (c *userClient) Destroy(dev string) error {
-	var res statusResponse
-	arg := dev
-	err := c.client.Call("destroy-interfaces", &arg, &res)
+	arg := VhostIface{
+		Device: dev,
+	}
+	err := c.client.Call("destroy-interface", &arg, nil)
 	return err
 }
 

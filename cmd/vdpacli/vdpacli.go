@@ -39,8 +39,8 @@ func list() {
 		return
 	}
 	for _, iface := range ifaceList {
-		fmt.Printf("id: %d \t device: %s \t socket: %s \t mode: %s \n",
-			iface.ID, iface.Device, iface.Socket, iface.Mode)
+		fmt.Printf("device: %s \t socket: %s \t mode: %s \t driver: %s\n",
+			iface.Device, iface.Socket, iface.Mode, iface.Driver)
 	}
 }
 
@@ -50,7 +50,6 @@ func create(device string, socket string, mode string) {
 	iface.Socket = socket
 	iface.Mode = mode
 
-	fmt.Printf("Creating %v\n", iface)
 	err := client.Create(iface)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Command Error\n")

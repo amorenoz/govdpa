@@ -10,9 +10,10 @@ package uvdpa
 // VhostIface represents a vhost-user interface
 type VhostIface struct {
 	ID     int    `json:"vdpa_id,omitempty"`
-	Device string `json:"device_id"` // TODO Omitempty?
-	Socket string `json:"socket_path"`
-	Mode   string `json:"socket_mode"`
+	Device string `json:"device-id"`
+	Socket string `json:"socket-path,omitempty"`
+	Mode   string `json:"socket-mode,omitempty"`
+	Driver string `json:"driver,omitempty"`
 }
 
 // UserDaemonStub is the Interface with the vDPA User Framework
