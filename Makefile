@@ -3,7 +3,7 @@
 #
 
 BINARY_NAME=vdpacli
-PACKAGE=user-vdpa-cli
+PACKAGE=govdpa
 ORG_PATH=github.com/amorenoz
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH=$(CURDIR)/.gopath

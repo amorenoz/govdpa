@@ -1,6 +1,6 @@
 package: .
 import:
-- package: github.com/amorenoz/sriov-network-device-plugin
-  version: vdpa_pooldev
+- package: github.com/amorenoz/govdpa
   subpackages:
-  - pkg/resources/vdpa/client
+  - pkg/internal/jsonrpc
+  - pkg/uvdpa

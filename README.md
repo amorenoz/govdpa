@@ -1,5 +1,14 @@
-# user-vdpa-cli
-A client for the Userspace Vdpa Daemon
+GoVdpa contains a set of libraries and programs to manage vdpa devices in Golang
+
+### Libraries: 
+- **uvdpa**: Implements the interaction with Userspace Vdpa Daemon
+
+### Programs:
+- **vpdacli**: A command line interface to the Userspace Vdpa Daemon
+
+# VdpaCli
+vdpacli is a command line interface that can send commands to the Userspace Vdpa Daemon.
+
 ## Building
 In order to build the application, just run the top level Makefile:
 

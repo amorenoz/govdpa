@@ -10,7 +10,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	vdpa "github.com/amorenoz/user-vdpa-cli/pkg/uvdpa"
+	vdpa "github.com/amorenoz/govdpa/pkg/uvdpa"
 	"os"
 	"strings"
 )
