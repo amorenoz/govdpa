@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	daemonSocketFile = "/var/run/uvdpad.sock"
+	daemonSocketFile = "/var/run/uvdpa/uvdpad.sock"
 )
 
 var (
