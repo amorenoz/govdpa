@@ -2,7 +2,7 @@
 #   This makefile was adapted from: https://github.com/vincentbernat/hellogopher/blob/feature/glide/Makefile
 #
 
-BINARY_NAME=vdpacli
+BINARY_NAME=uvdpa-cli
 PACKAGE=govdpa
 ORG_PATH=github.com/amorenoz
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)

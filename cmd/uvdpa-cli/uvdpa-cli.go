@@ -134,17 +134,16 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Printf("VdpaClient Initialized\n")
 
 	if len(os.Args) > 1 {
 		runCmd(os.Args[1:])
 		os.Exit(0)
 	}
 
-	fmt.Printf("Staring vdpa cli (type \"help\" to list the available commands)\n")
+	fmt.Printf("Staring userspace vdpa cli (type \"help\" to list the available commands)\n")
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print("[vdpacli] $ ")
+		fmt.Print("[uvdpacli] $ ")
 
 		cmd, err := reader.ReadString('\n')
 		if err != nil {
