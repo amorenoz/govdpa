@@ -9,9 +9,11 @@ import (
 
 const (
 	vdpaBusDevDir = "/sys/bus/vdpa/devices"
+	pciBusDevDir  = "/sys/bus/pci/devices"
 
-	vdpaDriverVhost  = "vhost_vdpa"
-	vdpaVhostDevDir  = "/dev"
+	vdpaDriverVhost = "vhost_vdpa"
+	vdpaVhostDevDir = "/dev"
+
 	vdpaDriverVirtio = "virtio_vdpa"
 )
 
@@ -105,4 +107,39 @@ func getVhostVdpaDev(name string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("vhost device not found for vdpa device %s", name)
+}
+
+/*GetVdpaDeviceByPci returns the vdpa device information corresponding to a PCI device*/
+/* Based on the following directory hiearchy:
+/sys/bus/pci/devices/{PCIDev}/
+    /vdpa{N}/
+
+/sys/bus/vdpa/devices/vdpa{N} -> ../../../devices/pci.../{PCIDev}/vdpa{N}
+*/
+func GetVdpaDeviceByPci(pciAddr string) (*VdpaDevice, error) {
+	path, err := filepath.EvalSymlinks(filepath.Join(pciBusDevDir, pciAddr))
+	if err != nil {
+		return nil, err
+	}
+	fd, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	fileInfos, err := fd.Readdir(-1)
+	for _, file := range fileInfos {
+		if strings.Contains(file.Name(), "vdpa") {
+			parent, err := filepath.EvalSymlinks(filepath.Join(vdpaBusDevDir, file.Name()))
+			if err != nil {
+				return nil, err
+			}
+			if filepath.Dir(parent) != path {
+				return nil, fmt.Errorf("vdpa device %s parent (%s) does not match containing dir (%s)",
+					file.Name(), parent, path)
+			}
+			return GetVdpaDeviceByName(file.Name())
+		}
+	}
+	return nil, fmt.Errorf("PCI address %s does not contain a vdpa device", pciAddr)
 }
