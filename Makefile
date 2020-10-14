@@ -2,19 +2,21 @@
 #   This makefile was adapted from: https://github.com/vincentbernat/hellogopher/blob/feature/glide/Makefile
 #
 
-BINARY_NAME=uvdpa-cli
 PACKAGE=govdpa
 ORG_PATH=github.com/amorenoz
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH=$(CURDIR)/.gopath
 GOBIN=$(CURDIR)/bin
-BUILDDIR=$(CURDIR)/build
 BASE=$(GOPATH)/src/$(REPO_PATH)
 PKGS=$(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
 GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
 GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
+BUILDDIR=$(CURDIR)/build
+BINARY_NAME=uvdpa-cli kvdpa-cli
+BINARY_PATH=$(patsubst %, $(BUILDDIR)/%, $(BINARY_NAME))
+
 
 export GOPATH
 export GOBIN
@@ -40,11 +42,11 @@ $(GOBIN):
 $(BUILDDIR): | $(BASE) ; $(info Creating build directory...)
 	@cd $(BASE) && mkdir -p $@
 
-build: $(BUILDDIR)/$(BINARY_NAME) | ; $(info Building $(BINARY_NAME)...)
+build: $(BINARY_PATH)
 	$(info Done!)
 
-$(BUILDDIR)/$(BINARY_NAME): $(GOFILES) | $(BUILDDIR)
-	@cd $(BASE)/cmd/$(BINARY_NAME) && CGO_ENABLED=0 $(GO) build $(LDFLAGS) -o $(BUILDDIR)/$(BINARY_NAME) -tags no_openssl -v
+$(BUILDDIR)/%: $(GOFILES) | $(BUILDDIR); $(info Building $* )
+	@cd cmd/$* && $(GO) build -o $(BUILDDIR)/$*
 
 # Tools
 
@@ -66,6 +68,7 @@ fmt: ; $(info  running gofmt...) @ ## Run gofmt on all source files
 # Misc
 .PHONY: clean
 clean: ; $(info  Cleaning...)	@ ## Cleanup everything
+	@$(GO) clean -modcache
 	@rm -rf $(GOPATH)
 	@rm -rf $(BUILDDIR)
 # @rm -rf test/tests.* test/coverage.*
