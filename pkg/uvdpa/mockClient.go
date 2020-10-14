@@ -1,10 +1,3 @@
-/*
- * Copyright (C) 2020  - All Rights Reserved
- * Author: Adrián Moreno <amorenoz@redhat.com>
- *
- * TBD: Licencing
- */
-
 package uvdpa
 
 import (
