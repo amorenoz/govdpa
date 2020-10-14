@@ -1,6 +1,0 @@
-package: .
-import:
-- package: github.com/amorenoz/govdpa
-  subpackages:
-  - pkg/internal/jsonrpc
-  - pkg/uvdpa

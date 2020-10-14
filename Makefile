@@ -14,7 +14,6 @@ PKGS=$(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | g
 GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
-GLIDE=glide
 GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
 
 export GOPATH
@@ -24,7 +23,6 @@ export GOBIN
 GO      = go
 GODOC   = godoc
 GOFMT   = gofmt
-GLIDE   = glide
 TIMEOUT = 15
 V = 0
 Q = $(if $(filter 1,$V),,@)
@@ -65,22 +63,11 @@ fmt: ; $(info  running gofmt...) @ ## Run gofmt on all source files
 		$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	 done ; exit $$ret
 
-# Dependency management
-glide.lock: glide.yaml | $(BASE) ; $(info  updating dependencies...)
-	$Q cd $(BASE) && $(GLIDE) update -v
-	@touch $@
-
-vendor: glide.lock | $(BASE) ; $(info  retrieving dependencies...)
-	$Q cd $(BASE) && $(GLIDE) --quiet install -v
-	@ln -nsf . vendor/src
-	@touch $@
-
-
 # Misc
 .PHONY: clean
 clean: ; $(info  Cleaning...)	@ ## Cleanup everything
 	@rm -rf $(GOPATH)
-	@rm -rf $(BUILDDIR)/$(BINARY_NAME)
+	@rm -rf $(BUILDDIR)
 # @rm -rf test/tests.* test/coverage.*
 
 .PHONY: help
