@@ -2,9 +2,12 @@ GoVdpa contains a set of libraries and programs to manage vdpa devices in Golang
 
 ### Libraries: 
 - **uvdpa**: Implements the interaction with Userspace Vdpa Daemon
+- **kvdpa**: Implements the interaction with the kernel vdpa subsystem
 
 ### Programs:
 - **uvpda-cli**: A command line interface to the Userspace Vdpa Daemon
+- **kvpda-cli**: A command line interface to the kernel vdpa subsystem
+
 
 # uvdpa-cli
 uvdpa-cli is a command line interface that can send commands to the Userspace Vdpa Daemon.
@@ -45,3 +48,25 @@ Extra arguments will be interpreted as commands (as if they were introduced in t
     device: 000:05:00.4      socket: /tmp/vdpa2      mode: client    driver: net_ifcvf
     $
 
+
+# kvdpa-cli
+kvdpa-cli is a command line interface that inspects the vdpa subsystem
+
+## Building
+In order to build the application, just run the top level Makefile:
+
+    $ make
+
+## Listing vdpa devices
+
+    ./build/kvdpa-cli list
+    {name:vdpa4 driver:vhost_vdpa path:/dev/vhost-vdpa-4}
+    {name:vdpa0 driver:vhost_vdpa path:/dev/vhost-vdpa-0}
+    {name:vdpa3 driver:vhost_vdpa path:/dev/vhost-vdpa-3}
+    {name:vdpa1 driver:vhost_vdpa path:/dev/vhost-vdpa-1}
+
+## Get one or more vdpa devices by pci address
+
+    ./build/kvdpa-cli get 0000:05:00.4 0000:05:00.2
+    0000:05:00.4 : {name:vdpa3 driver:vhost_vdpa path:/dev/vhost-vdpa-3}
+    0000:05:00.2 : {name:vdpa1 driver:vhost_vdpa path:/dev/vhost-vdpa-1}
