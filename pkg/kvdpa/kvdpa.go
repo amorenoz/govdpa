@@ -18,10 +18,29 @@ const (
 )
 
 /*VdpaDevice contains information about a Vdpa Device*/
-type VdpaDevice struct {
+type VdpaDevice interface {
+	GetDriver() string
+	GetParent() string
+	GetPath() string
+}
+
+/*vdpaDevimplements VdpaDevice interface */
+type vdpaDev struct {
 	name   string
 	driver string
 	path   string // Path of the vhost or virtio device
+}
+
+func (vd *vdpaDev) GetDriver() string {
+	return vd.driver
+}
+
+func (vd *vdpaDev) GetParent() string {
+	return vd.name
+}
+
+func (vd *vdpaDev) GetPath() string {
+	return vd.path
 }
 
 /*GetVdpaDeviceList returns a list of all available vdpa devices */
@@ -42,7 +61,7 @@ func GetVdpaDeviceList() ([]VdpaDevice, error) {
 		if vdpaDev, err := GetVdpaDeviceByName(file.Name()); err != nil {
 			errors = append(errors, err.Error())
 		} else {
-			vdpaDevList = append(vdpaDevList, *vdpaDev)
+			vdpaDevList = append(vdpaDevList, vdpaDev)
 		}
 	}
 
@@ -53,7 +72,7 @@ func GetVdpaDeviceList() ([]VdpaDevice, error) {
 }
 
 /*GetVdpaDeviceByName returns the vdpa device information by a vdpa device name */
-func GetVdpaDeviceByName(name string) (*VdpaDevice, error) {
+func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	var err error
 	var path string
 
@@ -75,7 +94,7 @@ func GetVdpaDeviceByName(name string) (*VdpaDevice, error) {
 		return nil, fmt.Errorf("Unknown vdpa bus driver %s", driver)
 	}
 
-	return &VdpaDevice{
+	return &vdpaDev{
 		name:   name,
 		driver: driver,
 		path:   path,
@@ -116,7 +135,7 @@ func getVhostVdpaDev(name string) (string, error) {
 
 /sys/bus/vdpa/devices/vdpa{N} -> ../../../devices/pci.../{PCIDev}/vdpa{N}
 */
-func GetVdpaDeviceByPci(pciAddr string) (*VdpaDevice, error) {
+func GetVdpaDeviceByPci(pciAddr string) (VdpaDevice, error) {
 	path, err := filepath.EvalSymlinks(filepath.Join(pciBusDevDir, pciAddr))
 	if err != nil {
 		return nil, err
