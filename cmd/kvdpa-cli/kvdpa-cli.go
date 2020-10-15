@@ -27,7 +27,7 @@ func getAction(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s : %+v\n", pci, *dev)
+		fmt.Printf("%s : %+v\n", pci, dev)
 	}
 	return nil
 }
