@@ -7,17 +7,19 @@ import (
 	"strings"
 )
 
+/*Exported constants */
 const (
-	vdpaBusDevDir = "/sys/bus/vdpa/devices"
-	pciBusDevDir  = "/sys/bus/pci/devices"
+	VhostVdpaDriver  = "vhost_vdpa"
+	VirtioVdpaDriver = "virtio_vdpa"
+)
 
-	vdpaDriverVhost = "vhost_vdpa"
+/*Private constants */
+const (
+	vdpaBusDevDir   = "/sys/bus/vdpa/devices"
+	pciBusDevDir    = "/sys/bus/pci/devices"
 	vdpaVhostDevDir = "/dev"
-
-	vdpaDriverVirtio = "virtio_vdpa"
-	virtioDevDir     = "/sys/bus/virtio/devices"
-
-	rootDevDir = "/sys/devices"
+	virtioDevDir    = "/sys/bus/virtio/devices"
+	rootDevDir      = "/sys/devices"
 )
 
 /*VdpaDevice contains information about a Vdpa Device*/
@@ -86,12 +88,12 @@ func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 
 	driver := filepath.Base(driverLink)
 	switch driver {
-	case vdpaDriverVhost:
+	case VhostVdpaDriver:
 		path, err = getVhostVdpaDev(name)
 		if err != nil {
 			return nil, err
 		}
-	case vdpaDriverVirtio:
+	case VirtioVdpaDriver:
 		path, err = getVirtioVdpaDev(name)
 		if err != nil {
 			return nil, err
