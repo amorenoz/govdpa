@@ -3,7 +3,7 @@
 #
 
 PACKAGE=govdpa
-ORG_PATH=github.com/amorenoz
+ORG_PATH=github.com/redhat-virtio-net
 REPO_PATH=$(ORG_PATH)/$(PACKAGE)
 GOPATH=$(CURDIR)/.gopath
 GOBIN=$(CURDIR)/bin

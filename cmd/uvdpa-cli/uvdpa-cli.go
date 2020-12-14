@@ -3,9 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
-	vdpa "github.com/amorenoz/govdpa/pkg/uvdpa"
 	"os"
 	"strings"
+
+	vdpa "github.com/redhat-virtio-net/govdpa/pkg/uvdpa"
 )
 
 var client vdpa.UserDaemonStub

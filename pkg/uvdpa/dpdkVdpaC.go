@@ -1,7 +1,7 @@
 package uvdpa
 
 import (
-	jsonrpc "github.com/amorenoz/govdpa/pkg/internal/jsonrpc"
+	jsonrpc "github.com/redhat-virtio-net/govdpa/pkg/internal/jsonrpc"
 	"net/rpc"
 	"sync"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	vdpa "github.com/amorenoz/govdpa/pkg/kvdpa"
+	vdpa "github.com/redhat-virtio-net/govdpa/pkg/kvdpa"
 	cli "github.com/urfave/cli/v2"
 )
 
@@ -27,7 +27,7 @@ func getAction(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s : %+v\n", pci, *dev)
+		fmt.Printf("%s : %+v\n", pci, dev)
 	}
 	return nil
 }
