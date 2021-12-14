@@ -2,6 +2,7 @@ package kvdpa
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,6 +28,7 @@ type VdpaDevice interface {
 	GetDriver() string
 	GetParent() string
 	GetPath() string
+	GetNetDev() string
 }
 
 /*vdpaDevimplements VdpaDevice interface */
@@ -34,6 +36,7 @@ type vdpaDev struct {
 	name   string
 	driver string
 	path   string // Path of the vhost or virtio device
+	netdev string // VirtioNet netdev (only for virtio-vdpa devices)
 }
 
 func (vd *vdpaDev) GetDriver() string {
@@ -46,6 +49,10 @@ func (vd *vdpaDev) GetParent() string {
 
 func (vd *vdpaDev) GetPath() string {
 	return vd.path
+}
+
+func (vd *vdpaDev) GetNetDev() string {
+	return vd.netdev
 }
 
 /*GetVdpaDeviceList returns a list of all available vdpa devices */
@@ -80,6 +87,7 @@ func GetVdpaDeviceList() ([]VdpaDevice, error) {
 func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	var err error
 	var path string
+	var netdev string
 
 	driverLink, err := os.Readlink(filepath.Join(vdpaBusDevDir, name, "driver"))
 	if err != nil {
@@ -98,6 +106,12 @@ func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 		if err != nil {
 			return nil, err
 		}
+		virtioNetDir := filepath.Join(path, "net")
+		netDeviceFiles, err := ioutil.ReadDir(virtioNetDir)
+		if err != nil || len(netDeviceFiles) != 1 {
+			return nil, fmt.Errorf("failed to get network device name from vdpa device in %v %v", name, err)
+		}
+		netdev = strings.TrimSpace(netDeviceFiles[0].Name())
 	default:
 		return nil, fmt.Errorf("Unknown vdpa bus driver %s", driver)
 	}
@@ -106,6 +120,7 @@ func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 		name:   name,
 		driver: driver,
 		path:   path,
+		netdev: netdev,
 	}, nil
 }
 
@@ -207,6 +222,7 @@ func getVirtioVdpaDev(name string) (string, error) {
 			return virtioDevPath, nil
 		}
 	}
+
 	return "", fmt.Errorf("virtio device not found for vdpa device %s", name)
 }
 
