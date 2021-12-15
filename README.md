@@ -1,11 +1,11 @@
 GoVdpa contains a set of libraries and programs to manage vdpa devices in Golang
 
 ### Libraries: 
-- **uvdpa**: Implements the interaction with Userspace Vdpa Daemon
+- **uvdpa**: (Experimental) Implements the interaction with Userspace Vdpa Daemon
 - **kvdpa**: Implements the interaction with the kernel vdpa subsystem
 
 ### Programs:
-- **uvpda-cli**: A command line interface to the Userspace Vdpa Daemon
+- **uvpda-cli**: (Experimental) A command line interface to the Userspace Vdpa Daemon
 - **kvpda-cli**: A command line interface to the kernel vdpa subsystem
 
 
