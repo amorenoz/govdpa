@@ -26,7 +26,7 @@ const (
 /*VdpaDevice contains information about a Vdpa Device*/
 type VdpaDevice interface {
 	GetDriver() string
-	GetParent() string
+	GetName() string
 	GetPath() string
 	GetNetDev() string
 }
@@ -43,7 +43,7 @@ func (vd *vdpaDev) GetDriver() string {
 	return vd.driver
 }
 
-func (vd *vdpaDev) GetParent() string {
+func (vd *vdpaDev) GetName() string {
 	return vd.name
 }
 
