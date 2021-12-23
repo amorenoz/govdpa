@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	vdpa "github.com/redhat-virtio-net/govdpa/pkg/kvdpa"
+	vdpa "github.com/k8snetworkplumbingwg/govdpa/pkg/kvdpa"
 	cli "github.com/urfave/cli/v2"
 )
 

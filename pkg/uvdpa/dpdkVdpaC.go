@@ -1,9 +1,10 @@
 package uvdpa
 
 import (
-	jsonrpc "github.com/redhat-virtio-net/govdpa/pkg/internal/jsonrpc"
 	"net/rpc"
 	"sync"
+
+	jsonrpc "github.com/k8snetworkplumbingwg/govdpa/pkg/internal/jsonrpc"
 )
 
 const (

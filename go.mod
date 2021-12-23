@@ -1,4 +1,4 @@
-module github.com/redhat-virtio-net/govdpa
+module github.com/k8snetworkplumbingwg/govdpa
 
 go 1.14
 
