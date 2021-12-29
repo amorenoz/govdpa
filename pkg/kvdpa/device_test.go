@@ -2,6 +2,7 @@ package kvdpa
 
 import (
 	"fmt"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -87,6 +88,72 @@ func TestVdpaDevList(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 				assert.Equal(t, tt.response, devs)
+			}
+		})
+	}
+}
+
+func TestVdpaDevGet(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		response VdpaDevice
+		devName  string
+	}{
+		{
+			name: "Single device vdpa0",
+			response: &vdpaDev{
+				name: "vdpa0",
+			},
+			devName: "vdpa0",
+		},
+		{
+			name: "Single device other name",
+			response: &vdpaDev{
+				name: "foo_bar_baz",
+			},
+			devName: "foo_bar_baz",
+		},
+		{
+			name:    "wrong device",
+			err:     syscall.ENODEV,
+			devName: "wrongdev",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestMgtDevDev", tt.name), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			netLinkMock.On("NewAttribute",
+				VdpaAttrDevName,
+				tt.devName,
+				mock.MatchedBy(func(data interface{}) bool {
+					_, ok := data.(string)
+					return ok
+				})).
+				Return(&nl.RtAttr{}, nil)
+
+			if tt.err != nil {
+				netLinkMock.On("RunVdpaNetlinkCmd",
+					VdpaCmdDevGet,
+					0,
+					mock.AnythingOfType("[]*nl.RtAttr")).
+					Return(nil, tt.err)
+			} else {
+				netLinkMock.On("RunVdpaNetlinkCmd",
+					VdpaCmdDevGet,
+					0,
+					mock.AnythingOfType("[]*nl.RtAttr")).
+					Return(vdpaDevToNlMessage(t, tt.response), nil)
+			}
+
+			dev, err := GetVdpaDeviceByName(tt.devName)
+			if tt.err != nil {
+				assert.Equal(t, tt.err, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.devName, dev.Name())
 			}
 		})
 	}
