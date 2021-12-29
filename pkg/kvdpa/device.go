@@ -2,57 +2,61 @@ package kvdpa
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-/*Exported constants */
+// Exported constants
 const (
 	VhostVdpaDriver  = "vhost_vdpa"
 	VirtioVdpaDriver = "virtio_vdpa"
 )
 
-/*Private constants */
+// Private constants
 const (
 	vdpaBusDevDir   = "/sys/bus/vdpa/devices"
 	pciBusDevDir    = "/sys/bus/pci/devices"
 	vdpaVhostDevDir = "/dev"
-	virtioDevDir    = "/sys/bus/virtio/devices"
 	rootDevDir      = "/sys/devices"
 )
 
-/*VdpaDevice contains information about a Vdpa Device*/
+// VdpaDevice contains information about a Vdpa Device
 type VdpaDevice interface {
-	GetDriver() string
-	GetParent() string
-	GetPath() string
-	GetNetDev() string
+	Driver() string
+	Name() string
+	VirtioNet() VirtioNet
+	VhostVdpa() VhostVdpa
 }
 
-/*vdpaDevimplements VdpaDevice interface */
+// vdpaDev implements VdpaDevice interface
 type vdpaDev struct {
-	name   string
-	driver string
-	path   string // Path of the vhost or virtio device
-	netdev string // VirtioNet netdev (only for virtio-vdpa devices)
+	name      string
+	driver    string
+	virtioNet VirtioNet
+	vhostVdpa VhostVdpa
 }
 
-func (vd *vdpaDev) GetDriver() string {
+// Driver resturns de device's driver name
+func (vd *vdpaDev) Driver() string {
 	return vd.driver
 }
 
-func (vd *vdpaDev) GetParent() string {
+// Driver resturns de device's name
+func (vd *vdpaDev) Name() string {
 	return vd.name
 }
 
-func (vd *vdpaDev) GetPath() string {
-	return vd.path
+// VhostVdpa returns the VhostVdpa device information associated
+// or nil if the device is not bound to the vhost_vdpa driver
+func (vd *vdpaDev) VhostVdpa() VhostVdpa {
+	return vd.vhostVdpa
 }
 
-func (vd *vdpaDev) GetNetDev() string {
-	return vd.netdev
+// Virtionet returns the VirtioNet device information associated
+// or nil if the device is not bound to the virtio_vdpa driver
+func (vd *vdpaDev) VirtioNet() VirtioNet {
+	return vd.virtioNet
 }
 
 /*GetVdpaDeviceList returns a list of all available vdpa devices */
@@ -86,8 +90,6 @@ func GetVdpaDeviceList() ([]VdpaDevice, error) {
 /*GetVdpaDeviceByName returns the vdpa device information by a vdpa device name */
 func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	var err error
-	var path string
-	var netdev string
 
 	driverLink, err := os.Readlink(filepath.Join(vdpaBusDevDir, name, "driver"))
 	if err != nil {
@@ -95,63 +97,32 @@ func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	}
 
 	driver := filepath.Base(driverLink)
+	vdpaDev := &vdpaDev{
+		name:   name,
+		driver: driver,
+	}
+
 	switch driver {
 	case VhostVdpaDriver:
-		path, err = getVhostVdpaDev(name)
+		vdpaDev.vhostVdpa, err = getVhostVdpaDev(name)
 		if err != nil {
 			return nil, err
 		}
 	case VirtioVdpaDriver:
-		path, err = getVirtioVdpaDev(name)
+		vdpaDev.virtioNet, err = getVirtioVdpaDev(name)
 		if err != nil {
 			return nil, err
 		}
-		virtioNetDir := filepath.Join(path, "net")
-		netDeviceFiles, err := ioutil.ReadDir(virtioNetDir)
-		if err != nil || len(netDeviceFiles) != 1 {
-			return nil, fmt.Errorf("failed to get network device name from vdpa device in %v %v", name, err)
-		}
-		netdev = strings.TrimSpace(netDeviceFiles[0].Name())
-	default:
-		return nil, fmt.Errorf("Unknown vdpa bus driver %s", driver)
 	}
 
-	return &vdpaDev{
-		name:   name,
-		driver: driver,
-		path:   path,
-		netdev: netdev,
-	}, nil
+	return vdpaDev, nil
 }
 
 /* Finds the vhost vdpa device of a vdpa device and returns it's path */
-func getVhostVdpaDev(name string) (string, error) {
-	file := filepath.Join(vdpaBusDevDir, name)
-	fd, err := os.Open(file)
-	if err != nil {
-		return "", err
-	}
-	defer fd.Close()
-
-	fileInfos, err := fd.Readdir(-1)
-	if err != nil {
-		return "", err
-	}
-	for _, file := range fileInfos {
-		if strings.Contains(file.Name(), "vhost-vdpa") &&
-			file.IsDir() {
-			devicePath := filepath.Join(vdpaVhostDevDir, file.Name())
-			info, err := os.Stat(devicePath)
-			if err != nil {
-				return "", err
-			}
-			if info.Mode()&os.ModeDevice == 0 {
-				return "", fmt.Errorf("vhost device %s is not a valid device", devicePath)
-			}
-			return devicePath, nil
-		}
-	}
-	return "", fmt.Errorf("vhost device not found for vdpa device %s", name)
+func getVhostVdpaDev(name string) (VhostVdpa, error) {
+	// vhost vdpa devices live in the vdpa device's path
+	path := filepath.Join(vdpaBusDevDir, name)
+	return GetVhostVdpaDevInPath(path)
 }
 
 /*GetVdpaDeviceByPci returns the vdpa device information corresponding to a PCI device*/
@@ -204,35 +175,13 @@ We also check the virtio device exists in the virtio bus:
 /sys/bus/virtio/devices
     virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 */
-func getVirtioVdpaDev(name string) (string, error) {
+func getVirtioVdpaDev(name string) (VirtioNet, error) {
 	vdpaDevicePath := filepath.Join(vdpaBusDevDir, name)
 	parentPath, err := getParentDevice(vdpaDevicePath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	fd, err := os.Open(parentPath)
-	if err != nil {
-		return "", err
-	}
-	defer fd.Close()
-
-	fileInfos, err := fd.Readdir(-1)
-	if err != nil {
-		return "", err
-	}
-	for _, file := range fileInfos {
-		if strings.Contains(file.Name(), "virtio") &&
-			file.IsDir() {
-			virtioDevPath := filepath.Join(virtioDevDir, file.Name())
-			if _, err := os.Stat(virtioDevPath); os.IsNotExist(err) {
-				return "", fmt.Errorf("virtio device %s does not exist", virtioDevPath)
-			}
-			return virtioDevPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("virtio device not found for vdpa device %s", name)
+	return GetVirtioNetInPath(parentPath)
 }
 
 /* getParentDevice returns the parent's path of a vdpa device path */
