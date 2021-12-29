@@ -40,6 +40,7 @@ func minKernelRequired(t *testing.T, kernel, major int) {
 func TestIntegrationMgmtDevList(t *testing.T) {
 	// Should have modprobed vdpa and vdpa_sim_net
 	minKernelRequired(t, 5, 12)
+	SetNetlinkOps(&defaultNetlinkOps{})
 	devs, err := ListVdpaMgmtDevices()
 	assert.Nil(t, err)
 
@@ -59,6 +60,7 @@ func TestIntegrationMgmtDevList(t *testing.T) {
 func TestIntegrationMgmtDevGet(t *testing.T) {
 	// Should have modprobed vdpa and vdpa_sim_net
 	minKernelRequired(t, 5, 12)
+	SetNetlinkOps(&defaultNetlinkOps{})
 	devs, err := ListVdpaMgmtDevices()
 	assert.Nil(t, err)
 
