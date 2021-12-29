@@ -22,7 +22,7 @@ const deviceTemplate = ` - Name: {{ .Name }}
 {{ end }}`
 
 func listAction(c *cli.Context) error {
-	devs, err := vdpa.GetVdpaDeviceList()
+	devs, err := vdpa.ListVdpaDevices()
 	if err != nil {
 		fmt.Println(err)
 	}

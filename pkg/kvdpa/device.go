@@ -5,6 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+
+	"github.com/vishvananda/netlink/nl"
 )
 
 // Exported constants
@@ -84,6 +87,17 @@ func (vd *vdpaDev) getBusInfo() error {
 		}
 	}
 
+	return nil
+}
+
+// parseAttributes populates the vdpa device information from netlink attributes
+func (vd *vdpaDev) parseAttributes(attrs []syscall.NetlinkRouteAttr) error {
+	for _, a := range attrs {
+		switch a.Attr.Type {
+		case VdpaAttrDevName:
+			vd.name = string(a.Value[:len(a.Value)-1])
+		}
+	}
 	return nil
 }
 
@@ -198,30 +212,36 @@ func GetVdpaDeviceByPci(pciAddr string) (VdpaDevice, error) {
 	return nil, fmt.Errorf("PCI address %s does not contain a vdpa device", pciAddr)
 }
 
-/*GetVdpaDeviceList returns a list of all available vdpa devices */
-func GetVdpaDeviceList() ([]VdpaDevice, error) {
-	vdpaDevList := make([]VdpaDevice, 0)
-	fd, err := os.Open(vdpaBusDevDir)
+/*ListVdpaDevices returns a list of all available vdpa devices */
+func ListVdpaDevices() ([]VdpaDevice, error) {
+	msgs, err := GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevGet, syscall.NLM_F_DUMP, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer fd.Close()
 
-	fileInfos, err := fd.Readdir(-1)
+	vdpaDevs, err := parseDevLinkVdpaDevList(msgs)
 	if err != nil {
 		return nil, err
 	}
-	var errors []string
-	for _, file := range fileInfos {
-		if vdpaDev, err := GetVdpaDeviceByName(file.Name()); err != nil {
-			errors = append(errors, err.Error())
-		} else {
-			vdpaDevList = append(vdpaDevList, vdpaDev)
+	return vdpaDevs, nil
+}
+
+func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {
+	devices := make([]VdpaDevice, 0, len(msgs))
+
+	for _, m := range msgs {
+		attrs, err := nl.ParseRouteAttr(m[nl.SizeofGenlmsg:])
+		if err != nil {
+			return nil, err
 		}
+		dev := &vdpaDev{}
+		if err = dev.parseAttributes(attrs); err != nil {
+			return nil, err
+		}
+		if err = dev.getBusInfo(); err != nil {
+			return nil, err
+		}
+		devices = append(devices, dev)
 	}
-
-	if len(errors) > 0 {
-		return vdpaDevList, fmt.Errorf(strings.Join(errors, ";"))
-	}
-	return vdpaDevList, nil
+	return devices, nil
 }
