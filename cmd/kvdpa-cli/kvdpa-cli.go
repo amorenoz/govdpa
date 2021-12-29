@@ -3,31 +3,50 @@ package main
 import (
 	"fmt"
 	"os"
+	"text/template"
 
 	vdpa "github.com/k8snetworkplumbingwg/govdpa/pkg/kvdpa"
 	cli "github.com/urfave/cli/v2"
 )
+
+const deviceTemplate = ` - Name: {{ .Name }}
+   Driver: {{ .Driver }}
+{{- if eq .Driver "virtio_vdpa" }}
+   Virtio Net Device:
+      Name: {{ .VirtioNet.Name }}
+      NetDev: {{ .VirtioNet.NetDev }}
+{{ else if eq .Driver "vhost_vdpa" }}
+   Vhost Vdpa Device:
+      Name: {{ .VhostVdpa.Name }}
+      Path: {{ .VhostVdpa.Path }}
+{{ end }}`
 
 func listAction(c *cli.Context) error {
 	devs, err := vdpa.GetVdpaDeviceList()
 	if err != nil {
 		fmt.Println(err)
 	}
+	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 
 	for _, dev := range devs {
-		fmt.Printf("%+v\n", dev)
+		if err := tmpl.Execute(os.Stdout, dev); err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
 
 func getAction(c *cli.Context) error {
+	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 	for i := 0; i < c.Args().Len(); i++ {
 		pci := c.Args().Get(i)
 		dev, err := vdpa.GetVdpaDeviceByPci(pci)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s : %+v\n", pci, dev)
+		if err := tmpl.Execute(os.Stdout, dev); err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
