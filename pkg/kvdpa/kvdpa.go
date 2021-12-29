@@ -134,6 +134,9 @@ func getVhostVdpaDev(name string) (string, error) {
 	defer fd.Close()
 
 	fileInfos, err := fd.Readdir(-1)
+	if err != nil {
+		return "", err
+	}
 	for _, file := range fileInfos {
 		if strings.Contains(file.Name(), "vhost-vdpa") &&
 			file.IsDir() {
@@ -170,6 +173,9 @@ func GetVdpaDeviceByPci(pciAddr string) (VdpaDevice, error) {
 	defer fd.Close()
 
 	fileInfos, err := fd.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
 	for _, file := range fileInfos {
 		if strings.Contains(file.Name(), "vdpa") {
 			parent, err := getParentDevice(filepath.Join(vdpaBusDevDir, file.Name()))
@@ -212,6 +218,9 @@ func getVirtioVdpaDev(name string) (string, error) {
 	defer fd.Close()
 
 	fileInfos, err := fd.Readdir(-1)
+	if err != nil {
+		return "", err
+	}
 	for _, file := range fileInfos {
 		if strings.Contains(file.Name(), "virtio") &&
 			file.IsDir() {
