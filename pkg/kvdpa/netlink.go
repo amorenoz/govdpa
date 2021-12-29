@@ -133,3 +133,50 @@ func (defaultNetlinkOps) NewAttribute(attrType int, data interface{}) (*nl.RtAtt
 	}
 
 }
+
+func newMockSingleMessage(command uint8, attrs []*nl.RtAttr) []byte {
+	b := make([]byte, 0)
+	dataBytes := make([][]byte, len(attrs)+1)
+
+	msg := &nl.Genlmsg{
+		Command: command,
+		Version: nl.GENL_CTRL_VERSION,
+	}
+	dataBytes[0] = msg.Serialize()
+
+	for i, attr := range attrs {
+		dataBytes[i+1] = attr.Serialize()
+	}
+	next := 0
+	for _, data := range dataBytes {
+		for _, dataByte := range data {
+			b = append(b, dataByte)
+			next = next + 1
+		}
+	}
+	return b
+	/*
+		nlm := &nl.NetlinkRequest{
+			NlMsghdr: unix.NlMsghdr{
+				Len:   uint32(unix.SizeofNlMsghdr),
+				Type:  0xa,
+				Flags: 0,
+				Seq:   1,
+			},
+		}
+		for _, a := range attrs {
+			nlm.AddData(a)
+		}
+		return nlm.Serialize()
+	*/
+}
+
+// Used for unit tests
+func newMockNetLinkResponse(command uint8, data [][]*nl.RtAttr) [][]byte {
+	msgs := make([][]byte, len(data))
+	for i, msgData := range data {
+		msgDataBytes := newMockSingleMessage(command, msgData)
+		msgs[i] = msgDataBytes
+	}
+	return msgs
+}
