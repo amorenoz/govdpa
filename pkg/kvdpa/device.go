@@ -1,8 +1,10 @@
 package kvdpa
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
@@ -206,6 +208,16 @@ func GetVdpaDevicesByMgmtDev(busName, devName string) ([]VdpaDevice, error) {
 	return result, nil
 }
 
+/*GetVdpaDevicesByPciAddress returns the VdpaDevice objects for the given pciAddress */
+func GetVdpaDevicesByPciAddress(pciAddress string) ([]VdpaDevice, error) {
+	busName, mgmtDeviceName, err := extractBusNameAndMgmtDeviceName(pciAddress)
+	if err != nil {
+		return nil, unix.EINVAL
+	}
+
+	return GetVdpaDevicesByMgmtDev(busName, mgmtDeviceName)
+}
+
 /*ListVdpaDevices returns a list of all available vdpa devices */
 func ListVdpaDevices() ([]VdpaDevice, error) {
 	msgs, err := GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevGet, syscall.NLM_F_DUMP, nil)
@@ -218,6 +230,75 @@ func ListVdpaDevices() ([]VdpaDevice, error) {
 		return nil, err
 	}
 	return vdpaDevs, nil
+}
+
+func extractBusNameAndMgmtDeviceName(fullMgmtDeviceName string) (busName string, mgmtDeviceName string, err error) {
+	numSlashes := strings.Count(fullMgmtDeviceName, "/")
+	if numSlashes > 1 {
+		return "", "", errors.New("expected mgmtDeviceName to be either in the format <mgmtBusName>/<mgmtDeviceName> or <mgmtDeviceName>")
+	} else if numSlashes == 0 {
+		// busName set to "pci" by default
+		return "pci", fullMgmtDeviceName, nil
+	} else {
+		values := strings.Split(fullMgmtDeviceName, "/")
+		return values[0], values[1], nil
+	}
+}
+
+/*AddVdpaDevice adds a new vdpa device to the given management device */
+func AddVdpaDevice(mgmtDeviceName string, vdpaDeviceName string) ([][]byte, error) {
+	if mgmtDeviceName == "" || vdpaDeviceName == "" {
+		return nil, unix.EINVAL
+	}
+
+	busName, mgmtDeviceName, err := extractBusNameAndMgmtDeviceName(mgmtDeviceName)
+	if err != nil {
+		return nil, unix.EINVAL
+	}
+
+	var busNameAttr *nl.RtAttr
+	if busName != "" {
+		busNameAttr, err = GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevBusName, busName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	mgmtAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevDevName, mgmtDeviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, vdpaDeviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	msgs, err := GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevNew, unix.NLM_F_ACK|unix.NLM_F_REQUEST, []*nl.RtAttr{busNameAttr, mgmtAttr, nameAttr})
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
+}
+
+/*DeleteVdpaDevice deletes a vdpa device */
+func DeleteVdpaDevice(vdpaDeviceName string) ([][]byte, error) {
+	if vdpaDeviceName == "" {
+		return nil, unix.EINVAL
+	}
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, vdpaDeviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	msgs, err := GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevDel, unix.NLM_F_ACK|unix.NLM_F_REQUEST, []*nl.RtAttr{nameAttr})
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
 }
 
 func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {
