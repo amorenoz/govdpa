@@ -2,6 +2,7 @@ package kvdpa
 
 import (
 	"fmt"
+	"os"
 	"syscall"
 	"testing"
 
@@ -34,6 +35,9 @@ func minKernelRequired(t *testing.T, kernel, major int) {
 	if k < kernel || k == kernel && m < major {
 		t.Skipf("Host Kernel (%d.%d) does not meet test's minimum required version: (%d.%d)",
 			k, m, kernel, major)
+	}
+	if os.Getenv("INTEGRATION") != "yes" {
+		t.Skipf("Skipping integration test")
 	}
 }
 
