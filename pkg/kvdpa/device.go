@@ -91,18 +91,23 @@ func GetVdpaDeviceList() ([]VdpaDevice, error) {
 func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	var err error
 
-	driverLink, err := os.Readlink(filepath.Join(vdpaBusDevDir, name, "driver"))
-	if err != nil {
+	if _, err := os.Readlink(filepath.Join(vdpaBusDevDir, name)); err != nil {
 		return nil, err
 	}
 
-	driver := filepath.Base(driverLink)
 	vdpaDev := &vdpaDev{
-		name:   name,
-		driver: driver,
+		name: name,
 	}
 
-	switch driver {
+	driverLink, err := os.Readlink(filepath.Join(vdpaBusDevDir, name, "driver"))
+	if err != nil {
+		// No error if driver is not present. The device is simply not bound to any.
+		return vdpaDev, nil
+	}
+
+	vdpaDev.driver = filepath.Base(driverLink)
+
+	switch vdpaDev.driver {
 	case VhostVdpaDriver:
 		vdpaDev.vhostVdpa, err = getVhostVdpaDev(name)
 		if err != nil {
