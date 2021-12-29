@@ -16,6 +16,7 @@ GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
 BUILDDIR=$(CURDIR)/build
 BINARY_NAME=uvdpa-cli kvdpa-cli
 BINARY_PATH=$(patsubst %, $(BUILDDIR)/%, $(BINARY_NAME))
+LIBRARIES=kvdpa uvdpa
 
 
 export GOPATH
@@ -42,11 +43,17 @@ $(GOBIN):
 $(BUILDDIR): | $(BASE) ; $(info Creating build directory...)
 	@cd $(BASE) && mkdir -p $@
 
-build: $(BINARY_PATH)
+build: $(BINARY_PATH) ## Build binaries
 	$(info Done!)
+
+test: | $(BASE) ; $(info Running tests...) @ ## Run tests
+	$Q ret=0 && for pkg in $(TESTPKGS); do \
+		cd $(GOPATH)/src/$$pkg && go test || ret=1 ; \
+	done ; test $$ret -eq 0
 
 $(BUILDDIR)/%: $(GOFILES) | $(BUILDDIR); $(info Building $* )
 	@cd cmd/$* && $(GO) build -o $(BUILDDIR)/$*
+
 
 # Tools
 
@@ -65,7 +72,6 @@ fmt: ; $(info  running gofmt...) @ ## Run gofmt on all source files
 		$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	 done ; exit $$ret
 
-# Misc
 .PHONY: clean
 clean: ; $(info  Cleaning...)	@ ## Cleanup everything
 	@$(GO) clean -modcache
@@ -74,6 +80,7 @@ clean: ; $(info  Cleaning...)	@ ## Cleanup everything
 # @rm -rf test/tests.* test/coverage.*
 
 .PHONY: help
-help:
+help: ## Show help
 	@grep -E '^[ a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
