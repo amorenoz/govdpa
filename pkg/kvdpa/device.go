@@ -157,18 +157,22 @@ func (vd *vdpaDev) getVirtioVdpaDev() (VirtioNet, error) {
 
 /*GetVdpaDeviceByName returns the vdpa device information by a vdpa device name */
 func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
-	if _, err := os.Readlink(filepath.Join(vdpaBusDevDir, name)); err != nil {
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, name)
+	if err != nil {
 		return nil, err
 	}
 
-	vdpaDev := &vdpaDev{
-		name: name,
-	}
-
-	if err := vdpaDev.getBusInfo(); err != nil {
+	msgs, err := GetNetlinkOps().
+		RunVdpaNetlinkCmd(VdpaCmdDevGet, 0, []*nl.RtAttr{nameAttr})
+	if err != nil {
 		return nil, err
 	}
-	return vdpaDev, nil
+
+	vdpaDevs, err := parseDevLinkVdpaDevList(msgs)
+	if err != nil {
+		return nil, err
+	}
+	return vdpaDevs[0], nil
 }
 
 /*GetVdpaDeviceByPci returns the vdpa device information corresponding to a PCI device*/
