@@ -375,3 +375,39 @@ func TestCreateVdpaDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteVdpaDevice(t *testing.T) {
+	tests := []struct {
+		name            string
+		devName         string
+		err             bool
+		setExpectations func(*mocks.NetlinkOps)
+	}{
+		{
+			name:    "normal deletion",
+			devName: "vdpa0",
+			setExpectations: func(m *mocks.NetlinkOps) {
+				m.On("NewAttribute", VdpaAttrDevName, "vdpa0").
+					Return(nil, nil)
+				m.On("RunVdpaNetlinkCmd", VdpaCmdDevDel, 0,
+					mock.AnythingOfType("[]*nl.RtAttr")).
+					Return(nil, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestDeleteVdpaDevice", tt.name), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			tt.setExpectations(netLinkMock)
+
+			ret := DeleteVdpaDevice(tt.devName)
+			if tt.err {
+				assert.NotNil(t, ret)
+			} else {
+				assert.Nil(t, ret)
+			}
+			mock.AssertExpectationsForObjects(t, netLinkMock)
+		})
+	}
+}

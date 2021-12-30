@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
 )
 
 func TestIntegrationVdpaDev(t *testing.T) {
@@ -21,4 +22,13 @@ func TestIntegrationVdpaDev(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "vdpa_test0", dev.Name())
 	assert.Equal(t, "vdpasim_net", dev.MgmtDev().Name())
+
+	// Delte it
+	err = DeleteVdpaDevice("vdpa_test0")
+	assert.Nil(t, err)
+
+	// Retrieve it again
+	_, err = GetVdpaDevice("vdpa_test0")
+	assert.Equal(t, unix.ENODEV, err)
+
 }

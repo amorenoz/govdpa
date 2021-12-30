@@ -257,6 +257,21 @@ func AddVdpaDevice(name, mgmt string) error {
 	return err
 }
 
+/* DeleteVdpaDevice deletes a VdpaDevice device.
+ */
+func DeleteVdpaDevice(name string) error {
+	args := []*nl.RtAttr{}
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, name)
+	if err != nil {
+		return err
+	}
+	args = append(args, nameAttr)
+
+	_, err = GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevDel, 0, args)
+	return err
+}
+
 func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {
 	devices := make([]VdpaDevice, 0, len(msgs))
 
