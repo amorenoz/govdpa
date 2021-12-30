@@ -1,10 +1,8 @@
 package kvdpa
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
@@ -19,7 +17,6 @@ const (
 // Private constants
 const (
 	vdpaBusDevDir   = "/sys/bus/vdpa/devices"
-	pciBusDevDir    = "/sys/bus/pci/devices"
 	vdpaVhostDevDir = "/dev"
 	rootDevDir      = "/sys/devices"
 )
@@ -167,8 +164,8 @@ func (vd *vdpaDev) getVirtioVdpaDev() (VirtioNet, error) {
 	return GetVirtioNetInPath(parentPath)
 }
 
-/*GetVdpaDeviceByName returns the vdpa device information by a vdpa device name */
-func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
+/*GetVdpaDevice returns the vdpa device information by a vdpa device name */
+func GetVdpaDevice(name string) (VdpaDevice, error) {
 	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, name)
 	if err != nil {
 		return nil, err
@@ -187,46 +184,26 @@ func GetVdpaDeviceByName(name string) (VdpaDevice, error) {
 	return vdpaDevs[0], nil
 }
 
-/*GetVdpaDeviceByPci returns the vdpa device information corresponding to a PCI device*/
-/* Based on the following directory hiearchy:
-/sys/bus/pci/devices/{PCIDev}/
-    /vdpa{N}/
-
-/sys/bus/vdpa/devices/vdpa{N} -> ../../../devices/pci.../{PCIDev}/vdpa{N}
+/*GetVdpaDevicesByMgmtDev returns the VdpaDevice objects whose MgmtDev
+has the given bus and device names.
 */
-func GetVdpaDeviceByPci(pciAddr string) (VdpaDevice, error) {
-	path, err := filepath.EvalSymlinks(filepath.Join(pciBusDevDir, pciAddr))
+func GetVdpaDevicesByMgmtDev(busName, devName string) ([]VdpaDevice, error) {
+	result := []VdpaDevice{}
+	devices, err := ListVdpaDevices()
 	if err != nil {
 		return nil, err
 	}
-	fd, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer fd.Close()
-
-	fileInfos, err := fd.Readdir(-1)
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range fileInfos {
-		if strings.Contains(file.Name(), "vdpa") {
-			vdpaDev, err := GetVdpaDeviceByName(file.Name())
-			if err != nil {
-				return nil, err
-			}
-			parent, err := vdpaDev.ParentDevicePath()
-			if err != nil {
-				return nil, err
-			}
-			if parent != path {
-				return nil, fmt.Errorf("vdpa device %s parent (%s) does not match containing dir (%s)",
-					file.Name(), parent, path)
-			}
-			return vdpaDev, nil
+	for _, device := range devices {
+		if device.MgmtDev() != nil &&
+			device.MgmtDev().BusName() == busName &&
+			device.MgmtDev().DevName() == devName {
+			result = append(result, device)
 		}
 	}
-	return nil, fmt.Errorf("PCI address %s does not contain a vdpa device", pciAddr)
+	if len(result) == 0 {
+		return nil, syscall.ENODEV
+	}
+	return result, nil
 }
 
 /*ListVdpaDevices returns a list of all available vdpa devices */
