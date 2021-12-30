@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/template"
 
 	vdpa "github.com/k8snetworkplumbingwg/govdpa/pkg/kvdpa"
@@ -27,14 +26,8 @@ func listAction(c *cli.Context) error {
 	var devs []vdpa.VdpaDevice
 	var err error
 	if c.String("mgmtdev") != "" {
-		var bus, name string
-		nameParts := strings.Split(c.String("mgmtdev"), "/")
-		if len(nameParts) == 1 {
-			name = nameParts[0]
-		} else if len(nameParts) == 2 {
-			bus = nameParts[0]
-			name = nameParts[1]
-		} else {
+		bus, name := vdpa.SplitMgmtDevName(c.String("mgmtdev"))
+		if name == "" {
 			return fmt.Errorf("Invalid management device name %s", c.String("mgmtdev"))
 		}
 		devs, err = vdpa.GetVdpaDevicesByMgmtDev(bus, name)

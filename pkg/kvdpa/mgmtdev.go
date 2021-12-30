@@ -112,3 +112,17 @@ func parseDevLinkVdpaMgmtDevList(msgs [][]byte) ([]MgmtDev, error) {
 	}
 	return devices, nil
 }
+
+// Splits the MgmtDev name and returns [busname, devName]
+// If the name format is invalid, devName is ""
+func SplitMgmtDevName(mgmtdev string) (string, string) {
+	var bus, name string
+	nameParts := strings.Split(mgmtdev, "/")
+	if len(nameParts) == 1 {
+		name = nameParts[0]
+	} else if len(nameParts) == 2 {
+		bus = nameParts[0]
+		name = nameParts[1]
+	}
+	return bus, name
+}

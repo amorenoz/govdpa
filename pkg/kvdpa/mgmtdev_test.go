@@ -188,3 +188,41 @@ func TestMgmtDevGet(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitMgmtDev(t *testing.T) {
+	tests := []struct {
+		name    string
+		mgmtDev string
+		busName string
+		devName string
+	}{{
+		name:    "null bus",
+		mgmtDev: "foo",
+		devName: "foo",
+	},
+		{
+			name:    "full device and bus ",
+			mgmtDev: "foo/bar",
+			busName: "foo",
+			devName: "bar",
+		},
+		{
+			name:    "too many bars",
+			mgmtDev: "foo/bar/baz",
+			devName: "",
+		},
+		{
+			name:    "empty",
+			mgmtDev: "",
+			devName: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestSplitMgmtDev", tt.name), func(t *testing.T) {
+			bus, name := SplitMgmtDevName(tt.mgmtDev)
+			assert.Equal(t, tt.busName, bus)
+			assert.Equal(t, tt.devName, name)
+		})
+	}
+}
