@@ -10,6 +10,7 @@ import (
 )
 
 const deviceTemplate = ` - Name: {{ .Name }}
+   Management Device: {{ .MgmtDev.Name }}
    Driver: {{ .Driver }}
 {{- if eq .Driver "virtio_vdpa" }}
    Virtio Net Device:

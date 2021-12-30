@@ -29,6 +29,7 @@ const (
 type VdpaDevice interface {
 	Driver() string
 	Name() string
+	MgmtDev() MgmtDev
 	VirtioNet() VirtioNet
 	VhostVdpa() VhostVdpa
 	ParentDevicePath() (string, error)
@@ -38,6 +39,7 @@ type VdpaDevice interface {
 type vdpaDev struct {
 	name      string
 	driver    string
+	mgmtDev   *mgmtDev
 	virtioNet VirtioNet
 	vhostVdpa VhostVdpa
 }
@@ -50,6 +52,11 @@ func (vd *vdpaDev) Driver() string {
 // Driver resturns de device's name
 func (vd *vdpaDev) Name() string {
 	return vd.name
+}
+
+// MgmtDev returns the device's management device
+func (vd *vdpaDev) MgmtDev() MgmtDev {
+	return vd.mgmtDev
 }
 
 // VhostVdpa returns the VhostVdpa device information associated
@@ -93,12 +100,18 @@ func (vd *vdpaDev) getBusInfo() error {
 
 // parseAttributes populates the vdpa device information from netlink attributes
 func (vd *vdpaDev) parseAttributes(attrs []syscall.NetlinkRouteAttr) error {
+	mgmtDev := &mgmtDev{}
 	for _, a := range attrs {
 		switch a.Attr.Type {
 		case VdpaAttrDevName:
 			vd.name = string(a.Value[:len(a.Value)-1])
+		case VdpaAttrMgmtDevBusName:
+			mgmtDev.busName = string(a.Value[:len(a.Value)-1])
+		case VdpaAttrMgmtDevDevName:
+			mgmtDev.devName = string(a.Value[:len(a.Value)-1])
 		}
 	}
+	vd.mgmtDev = mgmtDev
 	return nil
 }
 

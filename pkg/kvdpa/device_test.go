@@ -23,6 +23,18 @@ func vdpaDevToNlMessage(t *testing.T, devs ...VdpaDevice) [][]byte {
 		name, err := nlOps.NewAttribute(VdpaAttrDevName, dev.Name())
 		assert.Nil(t, err)
 		attr = append(attr, name)
+
+		if mgmtDev := dev.MgmtDev(); mgmtDev != nil {
+			name, err := nlOps.NewAttribute(VdpaAttrMgmtDevDevName, mgmtDev.DevName())
+			assert.Nil(t, err)
+			attr = append(attr, name)
+
+			if busName := mgmtDev.BusName(); busName != "" {
+				bus, err := nlOps.NewAttribute(VdpaAttrMgmtDevBusName, busName)
+				assert.Nil(t, err)
+				attr = append(attr, bus)
+			}
+		}
 		attrs[i] = attr
 	}
 	return newMockNetLinkResponse(VdpaCmdDevNew, attrs)
@@ -45,6 +57,10 @@ func TestVdpaDevList(t *testing.T) {
 			response: []VdpaDevice{
 				&vdpaDev{
 					name: "vdpa0",
+					mgmtDev: &mgmtDev{
+						busName: "pci",
+						devName: "0000:01:01",
+					},
 				},
 			},
 		},
@@ -54,18 +70,37 @@ func TestVdpaDevList(t *testing.T) {
 			response: []VdpaDevice{
 				&vdpaDev{
 					name: "vdpa0",
+					mgmtDev: &mgmtDev{
+						busName: "pci",
+						devName: "0000:01:01",
+					},
 				},
 				&vdpaDev{
 					name: "vdpa1",
+					mgmtDev: &mgmtDev{
+						busName: "pci",
+						devName: "0000:01:02",
+					},
 				},
 				&vdpaDev{
 					name: "vdpa2",
+					mgmtDev: &mgmtDev{
+						devName: "vdpasim_net",
+					},
 				},
 				&vdpaDev{
 					name: "foo",
+					mgmtDev: &mgmtDev{
+						busName: "foo",
+						devName: "bar",
+					},
 				},
 				&vdpaDev{
 					name: "bar",
+					mgmtDev: &mgmtDev{
+						busName: "auxiliary",
+						devName: "driver_sf_1",
+					},
 				},
 			},
 		},
@@ -105,6 +140,10 @@ func TestVdpaDevGet(t *testing.T) {
 			name: "Single device vdpa0",
 			response: &vdpaDev{
 				name: "vdpa0",
+				mgmtDev: &mgmtDev{
+					busName: "pci",
+					devName: "0000:01:01",
+				},
 			},
 			devName: "vdpa0",
 		},
@@ -112,6 +151,10 @@ func TestVdpaDevGet(t *testing.T) {
 			name: "Single device other name",
 			response: &vdpaDev{
 				name: "foo_bar_baz",
+				mgmtDev: &mgmtDev{
+					busName: "foo",
+					devName: "bar",
+				},
 			},
 			devName: "foo_bar_baz",
 		},
