@@ -332,3 +332,46 @@ func TestVdpaDevGetByMgmt(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateVdpaDevice(t *testing.T) {
+	tests := []struct {
+		name            string
+		devName         string
+		mgmtDevName     string
+		err             bool
+		setExpectations func(*mocks.NetlinkOps)
+	}{
+		{
+			name:        "normal creation",
+			devName:     "vdpa0",
+			mgmtDevName: "someBus/someDev",
+			setExpectations: func(m *mocks.NetlinkOps) {
+				m.On("NewAttribute", VdpaAttrDevName, "vdpa0").
+					Return(nil, nil)
+				m.On("NewAttribute", VdpaAttrMgmtDevBusName, "someBus").
+					Return(nil, nil)
+				m.On("NewAttribute", VdpaAttrMgmtDevDevName, "someDev").
+					Return(nil, nil)
+				m.On("RunVdpaNetlinkCmd", VdpaCmdDevNew, 0,
+					mock.AnythingOfType("[]*nl.RtAttr")).
+					Return(nil, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestAddVdpaDevice", tt.name), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			tt.setExpectations(netLinkMock)
+
+			ret := AddVdpaDevice(tt.devName, tt.mgmtDevName)
+			if tt.err {
+				assert.NotNil(t, ret)
+			} else {
+				assert.Nil(t, ret)
+			}
+			mock.AssertExpectationsForObjects(t, netLinkMock)
+
+		})
+	}
+}

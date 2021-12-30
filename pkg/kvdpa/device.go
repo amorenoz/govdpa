@@ -1,6 +1,7 @@
 package kvdpa
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -219,6 +220,41 @@ func ListVdpaDevices() ([]VdpaDevice, error) {
 		return nil, err
 	}
 	return vdpaDevs, nil
+}
+
+/* AddVdpaDevice creates a new VdpaDevice device.
+
+It accepts the name of the vdpa device and the name of the management device
+that will create the device. The mgmtdev name is in the form [busName/]devName
+*/
+func AddVdpaDevice(name, mgmt string) error {
+	args := []*nl.RtAttr{}
+	mgmtBus, mgmtDev := SplitMgmtDevName(mgmt)
+	if mgmtDev == "" {
+		return fmt.Errorf("Invalid Management Device name")
+	}
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, name)
+	if err != nil {
+		return err
+	}
+	args = append(args, nameAttr)
+
+	mgmtDevAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevDevName, mgmtDev)
+	if err != nil {
+		return err
+	}
+	args = append(args, mgmtDevAttr)
+
+	if mgmtBus != "" {
+		mgmtBusAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevBusName, mgmtBus)
+		if err != nil {
+			return err
+		}
+		args = append(args, mgmtBusAttr)
+	}
+	_, err = GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevNew, 0, args)
+	return err
 }
 
 func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {
