@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 
 	vdpa "github.com/k8snetworkplumbingwg/govdpa/pkg/kvdpa"
@@ -23,9 +24,28 @@ const deviceTemplate = ` - Name: {{ .Name }}
 {{ end }}`
 
 func listAction(c *cli.Context) error {
-	devs, err := vdpa.ListVdpaDevices()
-	if err != nil {
-		fmt.Println(err)
+	var devs []vdpa.VdpaDevice
+	var err error
+	if c.String("mgmtdev") != "" {
+		var bus, name string
+		nameParts := strings.Split(c.String("mgmtdev"), "/")
+		if len(nameParts) == 1 {
+			name = nameParts[0]
+		} else if len(nameParts) == 2 {
+			bus = nameParts[0]
+			name = nameParts[1]
+		} else {
+			return fmt.Errorf("Invalid management device name %s", c.String("mgmtdev"))
+		}
+		devs, err = vdpa.GetVdpaDevicesByMgmtDev(bus, name)
+		if err != nil {
+			return err
+		}
+	} else {
+		devs, err = vdpa.ListVdpaDevices()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 
@@ -40,8 +60,8 @@ func listAction(c *cli.Context) error {
 func getAction(c *cli.Context) error {
 	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 	for i := 0; i < c.Args().Len(); i++ {
-		pci := c.Args().Get(i)
-		dev, err := vdpa.GetVdpaDeviceByPci(pci)
+		name := c.Args().Get(i)
+		dev, err := vdpa.GetVdpaDevice(name)
 		if err != nil {
 			return err
 		}
@@ -58,13 +78,19 @@ func main() {
 		Usage: "Interact with Kernel vDPA devices",
 		Commands: []*cli.Command{
 			{Name: "list",
-				Usage:  "List all vdpa devices",
+				Usage:  "List vdpa devices",
 				Action: listAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "mgmtdev",
+						Usage: "Name of the management device: [busName/]devName",
+					},
+				},
 			},
 			{Name: "get",
 				Usage:     "Get a specific vdpa device",
 				Action:    getAction,
-				ArgsUsage: "[pci addresses]",
+				ArgsUsage: "[name]",
 			},
 		},
 	}

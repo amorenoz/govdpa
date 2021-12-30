@@ -166,7 +166,7 @@ func TestVdpaDevGet(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%s_%s", "TestMgtDevDev", tt.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s_%s", "TestDevGet", tt.name), func(t *testing.T) {
 			netLinkMock := &mocks.NetlinkOps{}
 			SetNetlinkOps(netLinkMock)
 			netLinkMock.On("NewAttribute",
@@ -192,12 +192,142 @@ func TestVdpaDevGet(t *testing.T) {
 					Return(vdpaDevToNlMessage(t, tt.response), nil)
 			}
 
-			dev, err := GetVdpaDeviceByName(tt.devName)
+			dev, err := GetVdpaDevice(tt.devName)
 			if tt.err != nil {
 				assert.Equal(t, tt.err, err)
 			} else {
 				assert.Nil(t, err)
 				assert.Equal(t, tt.devName, dev.Name())
+			}
+		})
+	}
+}
+
+func TestVdpaDevGetByMgmt(t *testing.T) {
+
+	list_result := []VdpaDevice{
+		&vdpaDev{
+			name: "vdpa0",
+			mgmtDev: &mgmtDev{
+				busName: "pci",
+				devName: "0000:01:01",
+			},
+		},
+		&vdpaDev{
+			name: "vdpa1",
+			mgmtDev: &mgmtDev{
+				busName: "pci",
+				devName: "0000:01:02",
+			},
+		},
+		&vdpaDev{
+			name: "vdpa2",
+			mgmtDev: &mgmtDev{
+				devName: "vdpasim_net",
+			},
+		},
+		&vdpaDev{
+			name: "foo",
+			mgmtDev: &mgmtDev{
+				busName: "foo",
+				devName: "bar",
+			},
+		},
+		&vdpaDev{
+			name: "bar",
+			mgmtDev: &mgmtDev{
+				busName: "auxiliary",
+				devName: "driver_sf_1",
+			},
+		},
+		&vdpaDev{
+			name: "baz",
+			mgmtDev: &mgmtDev{
+				busName: "auxiliary",
+				devName: "driver_sf_1",
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		err         error
+		response    []VdpaDevice
+		mgmtDevName string
+		mgmtBusName string
+	}{
+		{
+			name: "Empty bus",
+			response: []VdpaDevice{
+				&vdpaDev{
+					name: "vdpa2",
+					mgmtDev: &mgmtDev{
+						devName: "vdpasim_net",
+					},
+				},
+			},
+			mgmtDevName: "vdpasim_net",
+		},
+		{
+			name: "PCI Address",
+			response: []VdpaDevice{
+				&vdpaDev{
+					name: "vdpa1",
+					mgmtDev: &mgmtDev{
+						busName: "pci",
+						devName: "0000:01:02",
+					},
+				},
+			},
+			mgmtDevName: "0000:01:02",
+			mgmtBusName: "pci",
+		},
+		{
+			name: "Multiple SF",
+			response: []VdpaDevice{
+				&vdpaDev{
+					name: "bar",
+					mgmtDev: &mgmtDev{
+						busName: "auxiliary",
+						devName: "driver_sf_1",
+					},
+				},
+				&vdpaDev{
+					name: "baz",
+					mgmtDev: &mgmtDev{
+						busName: "auxiliary",
+						devName: "driver_sf_1",
+					},
+				},
+			},
+			mgmtDevName: "driver_sf_1",
+			mgmtBusName: "auxiliary",
+		},
+		{
+			name:        "Wrong",
+			err:         unix.ENODEV,
+			mgmtDevName: "noDev",
+			mgmtBusName: "wrongBus",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestDevGetByMgmt", tt.name), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			netLinkMock.On("RunVdpaNetlinkCmd",
+				VdpaCmdDevGet,
+				mock.MatchedBy(func(flags int) bool {
+					return (flags|unix.NLM_F_DUMP != 0)
+				}),
+				mock.AnythingOfType("[]*nl.RtAttr")).
+				Return(vdpaDevToNlMessage(t, list_result...), nil)
+
+			devs, err := GetVdpaDevicesByMgmtDev(tt.mgmtBusName, tt.mgmtDevName)
+			if tt.err != nil {
+				assert.Equal(t, tt.err, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.response, devs)
 			}
 		})
 	}
