@@ -205,7 +205,7 @@ func TestVdpaDevGet(t *testing.T) {
 
 func TestVdpaDevGetByMgmt(t *testing.T) {
 
-	list_result := []VdpaDevice{
+	listResult := []VdpaDevice{
 		&vdpaDev{
 			name: "vdpa0",
 			mgmtDev: &mgmtDev{
@@ -320,7 +320,7 @@ func TestVdpaDevGetByMgmt(t *testing.T) {
 					return (flags|unix.NLM_F_DUMP != 0)
 				}),
 				mock.AnythingOfType("[]*nl.RtAttr")).
-				Return(vdpaDevToNlMessage(t, list_result...), nil)
+				Return(vdpaDevToNlMessage(t, listResult...), nil)
 
 			devs, err := GetVdpaDevicesByMgmtDev(tt.mgmtBusName, tt.mgmtDevName)
 			if tt.err != nil {

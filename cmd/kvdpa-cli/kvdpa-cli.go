@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -72,6 +73,19 @@ func getAction(c *cli.Context) error {
 	return nil
 }
 
+func addAction(c *cli.Context) error {
+	if c.Args().Len() != 2 {
+		usage := fmt.Sprintf("Usage: %v %v %v \n", c.App.Name, c.Command.Name, c.Command.ArgsUsage)
+		return errors.New(usage)
+	}
+
+	mgmtDevName := c.Args().Get(0)
+	devName := c.Args().Get(1)
+
+	_, err := vdpa.AddVdpaDevice(mgmtDevName, devName)
+	return err
+}
+
 func main() {
 	app := &cli.App{
 		Name:  "kvdpa-cli",
@@ -92,8 +106,14 @@ func main() {
 				Action:    getAction,
 				ArgsUsage: "[name]",
 			},
+			{Name: "add",
+				Usage:     "Add a new vdpa device",
+				Action:    addAction,
+				ArgsUsage: "[mgmtdev] [dev]",
+			},
 		},
 	}
+
 	err := app.Run(os.Args)
 	if err != nil {
 		fmt.Println(err)

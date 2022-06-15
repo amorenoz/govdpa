@@ -221,6 +221,30 @@ func ListVdpaDevices() ([]VdpaDevice, error) {
 	return vdpaDevs, nil
 }
 
+/*AddVdpaDevice adds a new vdpa device to the given management device */
+func AddVdpaDevice(mgmtDeviceName string, vdpaDeviceName string) ([][]byte, error) {
+	if mgmtDeviceName == "" || vdpaDeviceName == "" {
+		return nil, unix.EINVAL
+	}
+
+	mgmtAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevDevName, mgmtDeviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, vdpaDeviceName)
+	if err != nil {
+		return nil, err
+	}
+
+	msgs, err := GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevNew, unix.NLM_F_ACK|unix.NLM_F_REQUEST, []*nl.RtAttr{mgmtAttr, nameAttr})
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
+}
+
 func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {
 	devices := make([]VdpaDevice, 0, len(msgs))
 

@@ -188,3 +188,57 @@ func TestMgmtDevGet(t *testing.T) {
 		})
 	}
 }
+
+func TestDevAdd(t *testing.T) {
+	tests := []struct {
+		mgmtDevName string
+		devName     string
+		err         error
+	}{
+		{
+			mgmtDevName: "vdpasim_net",
+			devName:     "vdpa0",
+			err:         nil,
+		},
+		{
+			mgmtDevName: "",
+			devName:     "vdpa0",
+			err:         unix.EINVAL,
+		},
+		{
+			mgmtDevName: "vdpasim_net",
+			devName:     "",
+			err:         unix.EINVAL,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s_%s", "TestDevAdd", tt.mgmtDevName, tt.devName), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			netLinkMock.On("NewAttribute",
+				VdpaAttrMgmtDevDevName,
+				tt.mgmtDevName,
+				mock.MatchedBy(func(data interface{}) bool {
+					_, ok := data.(string)
+					return ok
+				})).Return(&nl.RtAttr{}, nil)
+			netLinkMock.On("NewAttribute",
+				VdpaAttrDevName,
+				tt.devName,
+				mock.MatchedBy(func(data interface{}) bool {
+					_, ok := data.(string)
+					return ok
+				})).Return(&nl.RtAttr{}, nil)
+			netLinkMock.On("RunVdpaNetlinkCmd",
+				VdpaCmdDevNew,
+				mock.MatchedBy(func(flags int) bool {
+					return (flags|unix.NLM_F_ACK != 0 && flags|unix.NLM_F_REQUEST != 0)
+				}),
+				mock.AnythingOfType("[]*nl.RtAttr")).Return([][]byte{}, tt.err)
+
+			_, err := AddVdpaDevice(tt.mgmtDevName, tt.devName)
+			assert.Equal(t, tt.err, err)
+		})
+	}
+}
