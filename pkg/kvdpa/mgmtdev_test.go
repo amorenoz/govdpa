@@ -211,13 +211,13 @@ func TestDevAdd(t *testing.T) {
 			mgmtBusName: "",
 			mgmtDevName: "",
 			devName:     "vdpa0",
-			err:         unix.EINVAL,
+			err:         syscall.EINVAL,
 		},
 		{
 			mgmtBusName: "",
 			mgmtDevName: "vdpasim_net",
 			devName:     "",
-			err:         unix.EINVAL,
+			err:         syscall.EINVAL,
 		},
 	}
 
@@ -249,7 +249,7 @@ func TestDevAdd(t *testing.T) {
 			netLinkMock.On("RunVdpaNetlinkCmd",
 				VdpaCmdDevNew,
 				mock.MatchedBy(func(flags int) bool {
-					return (flags|unix.NLM_F_ACK != 0 && flags|unix.NLM_F_REQUEST != 0)
+					return (flags|syscall.NLM_F_ACK != 0 && flags|syscall.NLM_F_REQUEST != 0)
 				}),
 				mock.AnythingOfType("[]*nl.RtAttr")).Return([][]byte{}, tt.err)
 
@@ -270,7 +270,7 @@ func TestDevDelete(t *testing.T) {
 		},
 		{
 			devName: "",
-			err:     unix.EINVAL,
+			err:     syscall.EINVAL,
 		},
 	}
 
@@ -288,7 +288,7 @@ func TestDevDelete(t *testing.T) {
 			netLinkMock.On("RunVdpaNetlinkCmd",
 				VdpaCmdDevDel,
 				mock.MatchedBy(func(flags int) bool {
-					return (flags|unix.NLM_F_ACK != 0 && flags|unix.NLM_F_REQUEST != 0)
+					return (flags|syscall.NLM_F_ACK != 0 && flags|syscall.NLM_F_REQUEST != 0)
 				}),
 				mock.AnythingOfType("[]*nl.RtAttr")).Return([][]byte{}, tt.err)
 

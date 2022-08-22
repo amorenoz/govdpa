@@ -146,17 +146,22 @@ func (vd *vdpaDev) ParentDevicePath() (string, error) {
 	return parent, nil
 }
 
-/* Finds the virtio vdpa device of a vdpa device and returns its path
+/*
+	Finds the virtio vdpa device of a vdpa device and returns its path
+
 Currently, PCI-based devices have the following sysfs structure:
 /sys/bus/vdpa/devices/
-    vdpa1 -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/vdpa1
+
+	vdpa1 -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/vdpa1
 
 In order to find the virtio device we look for virtio* devices inside the parent device:
+
 	sys/devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 
 We also check the virtio device exists in the virtio bus:
 /sys/bus/virtio/devices
-    virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
+
+	virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 */
 func (vd *vdpaDev) getVirtioVdpaDev() (VirtioNet, error) {
 	parentPath, err := vd.ParentDevicePath()
@@ -186,7 +191,8 @@ func GetVdpaDevice(name string) (VdpaDevice, error) {
 	return vdpaDevs[0], nil
 }
 
-/*GetVdpaDevicesByMgmtDev returns the VdpaDevice objects whose MgmtDev
+/*
+GetVdpaDevicesByMgmtDev returns the VdpaDevice objects whose MgmtDev
 has the given bus and device names.
 */
 func GetVdpaDevicesByMgmtDev(busName, devName string) ([]VdpaDevice, error) {
