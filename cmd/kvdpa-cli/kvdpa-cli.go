@@ -3,31 +3,71 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
+	"text/template"
 
 	vdpa "github.com/k8snetworkplumbingwg/govdpa/pkg/kvdpa"
 	cli "github.com/urfave/cli/v2"
 )
 
+const deviceTemplate = ` - Name: {{ .Name }}
+   Management Device: {{ .MgmtDev.Name }}
+   Driver: {{ .Driver }}
+{{- if eq .Driver "virtio_vdpa" }}
+   Virtio Net Device:
+      Name: {{ .VirtioNet.Name }}
+      NetDev: {{ .VirtioNet.NetDev }}
+{{ else if eq .Driver "vhost_vdpa" }}
+   Vhost Vdpa Device:
+      Name: {{ .VhostVdpa.Name }}
+      Path: {{ .VhostVdpa.Path }}
+{{ end }}`
+
 func listAction(c *cli.Context) error {
-	devs, err := vdpa.GetVdpaDeviceList()
-	if err != nil {
-		fmt.Println(err)
+	var devs []vdpa.VdpaDevice
+	var err error
+	if c.String("mgmtdev") != "" {
+		var bus, name string
+		nameParts := strings.Split(c.String("mgmtdev"), "/")
+		if len(nameParts) == 1 {
+			name = nameParts[0]
+		} else if len(nameParts) == 2 {
+			bus = nameParts[0]
+			name = nameParts[1]
+		} else {
+			return fmt.Errorf("Invalid management device name %s", c.String("mgmtdev"))
+		}
+		devs, err = vdpa.GetVdpaDevicesByMgmtDev(bus, name)
+		if err != nil {
+			return err
+		}
+	} else {
+		devs, err = vdpa.ListVdpaDevices()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
+	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 
 	for _, dev := range devs {
-		fmt.Printf("%+v\n", dev)
+		if err := tmpl.Execute(os.Stdout, dev); err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
 
 func getAction(c *cli.Context) error {
+	tmpl := template.Must(template.New("device").Parse(deviceTemplate))
 	for i := 0; i < c.Args().Len(); i++ {
-		pci := c.Args().Get(i)
-		dev, err := vdpa.GetVdpaDeviceByPci(pci)
+		name := c.Args().Get(i)
+		dev, err := vdpa.GetVdpaDevice(name)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s : %+v\n", pci, dev)
+		if err := tmpl.Execute(os.Stdout, dev); err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
@@ -38,13 +78,19 @@ func main() {
 		Usage: "Interact with Kernel vDPA devices",
 		Commands: []*cli.Command{
 			{Name: "list",
-				Usage:  "List all vdpa devices",
+				Usage:  "List vdpa devices",
 				Action: listAction,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "mgmtdev",
+						Usage: "Name of the management device: [busName/]devName",
+					},
+				},
 			},
 			{Name: "get",
 				Usage:     "Get a specific vdpa device",
 				Action:    getAction,
-				ArgsUsage: "[pci addresses]",
+				ArgsUsage: "[name]",
 			},
 		},
 	}
