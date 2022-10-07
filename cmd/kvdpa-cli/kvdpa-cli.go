@@ -84,6 +84,17 @@ func addAction(c *cli.Context) error {
 	return vdpa.AddVdpaDevice(mgmtDevName, devName)
 }
 
+func deleteAction(c *cli.Context) error {
+	if c.Args().Len() != 1 {
+		err := cli.ShowAppHelp(c)
+		return err
+	}
+
+	devName := c.Args().Get(0)
+
+	return vdpa.DeleteVdpaDevice(devName)
+}
+
 func main() {
 	app := &cli.App{
 		Name:  "kvdpa-cli",
@@ -108,6 +119,11 @@ func main() {
 				Usage:     "Add a new vdpa device",
 				Action:    addAction,
 				ArgsUsage: "[mgmtdev] [dev]",
+			},
+			{Name: "del",
+				Usage:     "Delete a vdpa device",
+				Action:    deleteAction,
+				ArgsUsage: "[dev]",
 			},
 		},
 	}

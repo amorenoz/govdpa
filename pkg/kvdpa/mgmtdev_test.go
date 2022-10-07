@@ -261,3 +261,42 @@ func TestDevAdd(t *testing.T) {
 		})
 	}
 }
+
+func TestDevDelete(t *testing.T) {
+	tests := []struct {
+		devName string
+		err     error
+	}{
+		{
+			devName: "vdpa0",
+			err:     nil,
+		},
+		{
+			devName: "",
+			err:     unix.EINVAL,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s_%s", "TestDevDel", tt.devName), func(t *testing.T) {
+			netLinkMock := &mocks.NetlinkOps{}
+			SetNetlinkOps(netLinkMock)
+			netLinkMock.On("NewAttribute",
+				VdpaAttrDevName,
+				tt.devName,
+				mock.MatchedBy(func(data interface{}) bool {
+					_, ok := data.(string)
+					return ok
+				})).Return(&nl.RtAttr{}, nil)
+			netLinkMock.On("RunVdpaNetlinkCmd",
+				VdpaCmdDevDel,
+				mock.MatchedBy(func(flags int) bool {
+					return (flags|unix.NLM_F_ACK != 0 && flags|unix.NLM_F_REQUEST != 0)
+				}),
+				mock.AnythingOfType("[]*nl.RtAttr")).Return([][]byte{}, tt.err)
+
+			err := DeleteVdpaDevice(tt.devName)
+			assert.Equal(t, tt.err, err)
+		})
+	}
+}
