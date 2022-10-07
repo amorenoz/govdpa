@@ -1,11 +1,14 @@
 package kvdpa
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/vishvananda/netlink/nl"
+	"golang.org/x/sys/unix"
 )
 
 // Exported constants
@@ -144,17 +147,22 @@ func (vd *vdpaDev) ParentDevicePath() (string, error) {
 	return parent, nil
 }
 
-/* Finds the virtio vdpa device of a vdpa device and returns its path
+/*
+	Finds the virtio vdpa device of a vdpa device and returns its path
+
 Currently, PCI-based devices have the following sysfs structure:
 /sys/bus/vdpa/devices/
-    vdpa1 -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/vdpa1
+
+	vdpa1 -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/vdpa1
 
 In order to find the virtio device we look for virtio* devices inside the parent device:
+
 	sys/devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 
 We also check the virtio device exists in the virtio bus:
 /sys/bus/virtio/devices
-    virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
+
+	virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 */
 func (vd *vdpaDev) getVirtioVdpaDev() (VirtioNet, error) {
 	parentPath, err := vd.ParentDevicePath()
@@ -184,7 +192,8 @@ func GetVdpaDevice(name string) (VdpaDevice, error) {
 	return vdpaDevs[0], nil
 }
 
-/*GetVdpaDevicesByMgmtDev returns the VdpaDevice objects whose MgmtDev
+/*
+GetVdpaDevicesByMgmtDev returns the VdpaDevice objects whose MgmtDev
 has the given bus and device names.
 */
 func GetVdpaDevicesByMgmtDev(busName, devName string) ([]VdpaDevice, error) {
@@ -218,6 +227,59 @@ func ListVdpaDevices() ([]VdpaDevice, error) {
 		return nil, err
 	}
 	return vdpaDevs, nil
+}
+
+func extractBusNameAndMgmtDeviceName(fullMgmtDeviceName string) (busName string, mgmtDeviceName string, err error) {
+	numSlashes := strings.Count(fullMgmtDeviceName, "/")
+	if numSlashes > 1 {
+		return "", "", errors.New("expected mgmtDeviceName to be either in the format <mgmtBusName>/<mgmtDeviceName> or <mgmtDeviceName>")
+	} else if numSlashes == 0 {
+		return "", fullMgmtDeviceName, nil
+	} else {
+		values := strings.Split(fullMgmtDeviceName, "/")
+		return values[0], values[1], nil
+	}
+}
+
+/*AddVdpaDevice adds a new vdpa device to the given management device */
+func AddVdpaDevice(mgmtDeviceName string, vdpaDeviceName string) error {
+	if mgmtDeviceName == "" || vdpaDeviceName == "" {
+		return unix.EINVAL
+	}
+
+	busName, mgmtDeviceName, err := extractBusNameAndMgmtDeviceName(mgmtDeviceName)
+	if err != nil {
+		return unix.EINVAL
+	}
+
+	var attributes []*nl.RtAttr
+	var busNameAttr *nl.RtAttr
+	if busName != "" {
+		busNameAttr, err = GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevBusName, busName)
+		if err != nil {
+			return err
+		}
+		attributes = append(attributes, busNameAttr)
+	}
+
+	mgmtAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrMgmtDevDevName, mgmtDeviceName)
+	if err != nil {
+		return err
+	}
+	attributes = append(attributes, mgmtAttr)
+
+	nameAttr, err := GetNetlinkOps().NewAttribute(VdpaAttrDevName, vdpaDeviceName)
+	if err != nil {
+		return err
+	}
+	attributes = append(attributes, nameAttr)
+
+	_, err = GetNetlinkOps().RunVdpaNetlinkCmd(VdpaCmdDevNew, unix.NLM_F_ACK|unix.NLM_F_REQUEST, attributes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func parseDevLinkVdpaDevList(msgs [][]byte) ([]VdpaDevice, error) {

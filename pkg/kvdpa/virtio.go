@@ -2,7 +2,6 @@ package kvdpa
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +54,7 @@ func GetVirtioNetInPath(parentPath string) (VirtioNet, error) {
 			}
 			var netdev string
 			// Read the "net" directory in the virtio device path
-			netDeviceFiles, err := ioutil.ReadDir(filepath.Join(virtioDevPath, "net"))
+			netDeviceFiles, err := os.ReadDir(filepath.Join(virtioDevPath, "net"))
 			if err == nil && len(netDeviceFiles) == 1 {
 				netdev = strings.TrimSpace(netDeviceFiles[0].Name())
 			}
