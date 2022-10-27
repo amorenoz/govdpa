@@ -105,7 +105,7 @@ func (defaultNetlinkOps) NewAttribute(attrType int, data interface{}) (*nl.RtAtt
 	case VdpaAttrMgmtDevBusName, VdpaAttrMgmtDevDevName, VdpaAttrDevName:
 		strData, ok := data.(string)
 		if !ok {
-			return nil, fmt.Errorf("Attribute type %d requires string data", attrType)
+			return nil, fmt.Errorf("attribute type %d requires string data", attrType)
 		}
 		bytes := make([]byte, len(strData)+1)
 		copy(bytes, strData)
@@ -129,7 +129,7 @@ func (defaultNetlinkOps) NewAttribute(attrType int, data interface{}) (*nl.RtAtt
 		    VdpaAttrGetNetCfgMTU      u16
 		*/
 	default:
-		return nil, fmt.Errorf("Invalid attribute type %d", attrType)
+		return nil, fmt.Errorf("invalid attribute type %d", attrType)
 	}
 
 }
