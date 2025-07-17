@@ -19,3 +19,6 @@ bin
 
 # Gopath
 .gopath/
+
+# Vendor directory
+vendor
