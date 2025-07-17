@@ -9,10 +9,9 @@ GOPATH=$(CURDIR)/.gopath
 GOBIN=$(CURDIR)/bin
 BASE=$(GOPATH)/src/$(REPO_PATH)
 PKGS=$(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
-GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
-GOFILES = $(shell find . -name *.go | grep -vE "(\/vendor\/)|(_test.go)")
+GOFILES = $(shell find . -name *.go | grep -vE "(/vendor/)|(_test.go)")
 BUILDDIR=$(CURDIR)/build
 BINARY_NAME=uvdpa-cli kvdpa-cli
 BINARY_PATH=$(patsubst %, $(BUILDDIR)/%, $(BINARY_NAME))
