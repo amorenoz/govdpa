@@ -65,7 +65,7 @@ $(BUILDDIR)/%: $(GOFILES) | $(BUILDDIR); $(info Building $* )
 
 GOLINT = $(GOBIN)/golint
 $(GOBIN)/golint: | $(BASE) ; $(info  building golint...)
-	$Q go get -u golang.org/x/lint/golint
+	$Q go install golang.org/x/lint/golint
 .PHONY: lint
 lint: | $(BASE) $(GOLINT) ; $(info  running golint...) @ ## Run golint
 	$Q cd $(BASE) && ret=0 && for pkg in $(PKGS); do \
