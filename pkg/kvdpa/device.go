@@ -155,7 +155,7 @@ func (vd *vdpaDev) ParentDevicePath() (string, error) {
 	vdpaDevicePath := filepath.Join(vdpaBusDevDir, vd.name)
 
 	/* For pci devices we have:
-	/sys/bud/vdpa/devices/vdpaX ->
+	/sys/bus/vdpa/devices/vdpaX ->
 	    ../../../devices/pci0000:00/.../0000:05:00:1/vdpaX
 
 	Resolving the symlinks should give us the parent PCI device.
@@ -194,11 +194,14 @@ We also check the virtio device exists in the virtio bus:
 	virtio{N} -> ../../../devices/pci0000:00/0000:00:03.2/0000:05:00.2/virtio{N}
 */
 func (vd *vdpaDev) getVirtioVdpaDev() (VirtioNet, error) {
-	parentPath, err := vd.ParentDevicePath()
-	if err != nil {
-		return nil, err
+	if vd.mgmtDev.BusName() == "pci" {
+		parentPath, err := vd.ParentDevicePath()
+		if err != nil {
+			return nil, err
+		}
+		return GetVirtioNetInPath(parentPath)
 	}
-	return GetVirtioNetInPath(parentPath)
+	return GetVirtioNetInPath(filepath.Join(vdpaBusDevDir, vd.name))
 }
 
 /*GetVdpaDevice returns the vdpa device information by a vdpa device name */
