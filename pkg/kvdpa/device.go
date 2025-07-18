@@ -17,9 +17,10 @@ const (
 
 // Private constants
 const (
-	vdpaBusDevDir   = "/sys/bus/vdpa/devices"
-	vdpaVhostDevDir = "/dev"
-	rootDevDir      = "/sys/devices"
+	vdpaBusDevDir    = "/sys/bus/vdpa/devices"
+	vdpaBusDriverDir = "/sys/bus/vdpa/drivers"
+	vdpaVhostDevDir  = "/dev"
+	rootDevDir       = "/sys/devices"
 )
 
 // VdpaDevice contains information about a Vdpa Device
@@ -29,6 +30,7 @@ type VdpaDevice interface {
 	MgmtDev() MgmtDev
 	VirtioNet() VirtioNet
 	VhostVdpa() VhostVdpa
+	Bind(string) error
 	ParentDevicePath() (string, error)
 }
 
@@ -66,6 +68,35 @@ func (vd *vdpaDev) VhostVdpa() VhostVdpa {
 // or nil if the device is not bound to the virtio_vdpa driver
 func (vd *vdpaDev) VirtioNet() VirtioNet {
 	return vd.virtioNet
+}
+
+// Bind a specific driver (if not already bound)
+func (vd *vdpaDev) Bind(driver string) error {
+	if vd.Driver() == driver {
+		return nil
+	}
+
+	if vd.Driver() != "" {
+		unbind, err := unix.Open(filepath.Join(vdpaBusDevDir, vd.name, "driver", "unbind"), unix.O_RDWR, 0)
+		if err != nil {
+			return err
+		}
+		defer unix.Close(unbind)
+		_, err = unix.Write(unbind, []byte(vd.name))
+		if err != nil {
+			return err
+		}
+	}
+	bind, err := unix.Open(filepath.Join(vdpaBusDriverDir, driver, "unbind"), unix.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(bind)
+	_, err = unix.Write(bind, []byte(vd.name))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // getBusInfo populates the vdpa bus information
