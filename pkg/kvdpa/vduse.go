@@ -22,6 +22,7 @@ const (
 	VduseNameMax   = 256
 	VduseCreateDev = 0x41508102
 	VduseDeleteDev = 0x41008103
+	VduseVqSetup   = 0x40208114
 	vduseDevDir    = "/dev/vduse"
 )
 
@@ -129,6 +130,7 @@ func (v *VirtioNetConf) CopyToBuf(dst unsafe.Pointer) error {
 }
 
 type vduseDevConfigC C.struct_vduse_dev_config
+type vduseVqConfigC C.struct_vduse_vq_config
 
 /*AddVduseDevice adds a new VDUSE device with the given configuration*/
 func AddVduseDevice(config VduseDevConfig) error {
@@ -166,7 +168,7 @@ func AddVduseDevice(config VduseDevConfig) error {
 	if configLen > 0 {
 		config.Config.CopyToBuf(unsafe.Add(buf, C.sizeof_struct_vduse_dev_config))
 	}
-
+	//fmt.Printf("VDUSE_CREATE_DEV %+v\n", cDev)
 	_, _, errno := unix.Syscall(
 		unix.SYS_IOCTL,
 		uintptr(controlFile),
@@ -177,6 +179,32 @@ func AddVduseDevice(config VduseDevConfig) error {
 		// The 'errno' is returned as the error in Go.
 		return fmt.Errorf("ioctl VDUSE_CREATE_DEV failed: %s", errno.Error())
 	}
+
+	devFd, err := unix.Open(filepath.Join(vduseDevDir, config.Name), unix.O_RDWR, 0)
+	if errno != 0 {
+		// The 'errno' is returned as the error in Go.
+		return fmt.Errorf("%s: cannot open vduse device: %s", config.Name, errno.Error())
+	}
+	defer unix.Close(devFd)
+
+	for i := 0; i < int(config.VQNum); i++ {
+		vqConfig := new(vduseVqConfigC)
+		vqConfig.index = C.__u32(i)
+		vqConfig.max_size = 1024
+
+		//fmt.Printf("VDUSE_VQ_SETUP %+v\n", vqConfig)
+		_, _, errno := unix.Syscall(
+			unix.SYS_IOCTL,
+			uintptr(devFd),
+			uintptr(VduseVqSetup),
+			uintptr(unsafe.Pointer(vqConfig)),
+		)
+		if errno != 0 {
+			// The 'errno' is returned as the error in Go.
+			return fmt.Errorf("%s: ioctl VDUSE_VQ_SETUP %d failed: %s", config.Name, i, errno.Error())
+		}
+	}
+
 	return nil
 }
 
