@@ -187,6 +187,14 @@ func AddVduseDevice(config VduseDevConfig) error {
 	}
 	defer unix.Close(devFd)
 
+	_, _, errno = unix.Syscall(
+		unix.SYS_FCNTL,
+		uintptr(devFd),
+		unix.F_SETFL, unix.O_NONBLOCK)
+	if errno != 0 {
+		return fmt.Errorf("%s: cannot set vduse device non-blocking: %s", config.Name, errno.Error())
+	}
+
 	for i := 0; i < int(config.VQNum); i++ {
 		vqConfig := new(vduseVqConfigC)
 		vqConfig.index = C.__u32(i)
