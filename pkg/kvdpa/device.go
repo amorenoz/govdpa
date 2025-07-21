@@ -1,6 +1,7 @@
 package kvdpa
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -77,26 +78,18 @@ func (vd *vdpaDev) Bind(driver string) error {
 	}
 
 	if vd.Driver() != "" {
-		unbind, err := unix.Open(filepath.Join(vdpaBusDevDir, vd.name, "driver", "unbind"), unix.O_RDWR, 0)
-		if err != nil {
-			return err
-		}
-		defer unix.Close(unbind)
-		_, err = unix.Write(unbind, []byte(vd.name))
+		unbind := filepath.Join(vdpaBusDevDir, vd.name, "driver", "unbind")
+		err := os.WriteFile(unbind, []byte(fmt.Sprintf("%s\n", vd.name)), os.FileMode(os.O_SYNC))
 		if err != nil {
 			return err
 		}
 	}
-	bind, err := unix.Open(filepath.Join(vdpaBusDriverDir, driver, "unbind"), unix.O_RDWR, 0)
+	bind := filepath.Join(vdpaBusDriverDir, driver, "bind")
+	err := os.WriteFile(bind, []byte(fmt.Sprintf("%s\n", vd.name)), os.FileMode(os.O_SYNC))
 	if err != nil {
 		return err
 	}
-	defer unix.Close(bind)
-	_, err = unix.Write(bind, []byte(vd.name))
-	if err != nil {
-		return err
-	}
-	return nil
+	return vd.getBusInfo()
 }
 
 // getBusInfo populates the vdpa bus information
