@@ -134,6 +134,9 @@ type vduseVqConfigC C.struct_vduse_vq_config
 
 /*AddVduseDevice adds a new VDUSE device with the given configuration*/
 func AddVduseDevice(config VduseDevConfig) error {
+	if _, err := os.Stat(filepath.Join(vduseDevDir, config.Name)); !os.IsNotExist(err) {
+		return fmt.Errorf("device already exists")
+	}
 	controlFile, err := unix.Open(filepath.Join(vduseDevDir, "control"), unix.O_RDWR, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open vduse control device: %w", err)
@@ -176,13 +179,12 @@ func AddVduseDevice(config VduseDevConfig) error {
 		uintptr(buf),
 	)
 	if errno != 0 {
-		// The 'errno' is returned as the error in Go.
 		return fmt.Errorf("ioctl VDUSE_CREATE_DEV failed: %s", errno.Error())
 	}
 
 	devFd, err := unix.Open(filepath.Join(vduseDevDir, config.Name), unix.O_RDWR, 0)
 	if errno != 0 {
-		// The 'errno' is returned as the error in Go.
+		DestroyVduseDevice(config.Name)
 		return fmt.Errorf("%s: cannot open vduse device: %s", config.Name, errno.Error())
 	}
 	defer unix.Close(devFd)
@@ -192,6 +194,7 @@ func AddVduseDevice(config VduseDevConfig) error {
 		uintptr(devFd),
 		unix.F_SETFL, unix.O_NONBLOCK)
 	if errno != 0 {
+		DestroyVduseDevice(config.Name)
 		return fmt.Errorf("%s: cannot set vduse device non-blocking: %s", config.Name, errno.Error())
 	}
 
@@ -208,7 +211,7 @@ func AddVduseDevice(config VduseDevConfig) error {
 			uintptr(unsafe.Pointer(vqConfig)),
 		)
 		if errno != 0 {
-			// The 'errno' is returned as the error in Go.
+			DestroyVduseDevice(config.Name)
 			return fmt.Errorf("%s: ioctl VDUSE_VQ_SETUP %d failed: %s", config.Name, i, errno.Error())
 		}
 	}
