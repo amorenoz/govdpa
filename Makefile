@@ -13,7 +13,7 @@ TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XT
 
 GOFILES = $(shell find . -name *.go | grep -vE "(/vendor/)|(_test.go)")
 BUILDDIR=$(CURDIR)/build
-BINARY_NAME=uvdpa-cli kvdpa-cli
+BINARY_NAME=uvdpa-cli kvdpa-cli vduse-cli
 BINARY_PATH=$(patsubst %, $(BUILDDIR)/%, $(BINARY_NAME))
 LIBRARIES=kvdpa uvdpa
 
