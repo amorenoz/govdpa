@@ -19,6 +19,7 @@ import (
 
 // Private constants
 const (
+	vduseDevDir    = "/dev/vduse/"
 	VduseNameMax   = 256
 	VduseCreateDev = 0x41508102
 	VduseDeleteDev = 0x41008103

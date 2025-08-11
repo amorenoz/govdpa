@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	vduseDevDir = "/dev/vduse"
+	vduseSysDevDir = "/sys/devices/virtual/vduse"
 )
 
 // VduseDevice contains information about a VDUSE Device
@@ -50,7 +50,7 @@ func (vu *vduseDev) VdpaDevice() (VdpaDevice, error) {
 
 // ListVduseDevices returns a list of all available VDUSE devices
 func ListVduseDevices() ([]VduseDevice, error) {
-	nodes, err := os.ReadDir(vduseDevDir)
+	nodes, err := os.ReadDir(vduseSysDevDir)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func ListVduseDevices() ([]VduseDevice, error) {
 
 // GetVduseDevice returns the vduse device with a given name
 func GetVduseDevice(name string) (VduseDevice, error) {
-	file := filepath.Join(vduseDevDir, name)
+	file := filepath.Join(vduseSysDevDir, name)
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return nil, fmt.Errorf("vduse device %s does not exist", name)
 	}
